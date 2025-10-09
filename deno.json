@@ -2,5 +2,12 @@
     "imports": {
         "@concepts/": "./src/concepts/",
         "@utils/": "./src/utils/"
+    },
+    "nodeModulesDir": "auto",
+    "npm": {
+        "specifiers": {
+            "@types/node": "^20.0.0",
+            "mongodb": "^6.0.0"
+        }
     }
 }
