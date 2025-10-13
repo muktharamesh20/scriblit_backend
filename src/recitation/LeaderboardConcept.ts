@@ -102,7 +102,21 @@ export default class LeaderboardConcept {
     // 2. The document should include the player's ID, the score value, and the current date (`new Date()`).
     // 3. Insert the document into the `scores` collection.
     // 4. Return the new score's ID: { score: newScoreId }
-    throw new Error("Not implemented");
+    //throw new Error("Not implemented");
+
+    const existingPlayer = await this.players.findOne({ _id: player });
+    if (!existingPlayer) {
+      return { error: "Player not found" };
+    }
+
+    const newScoreId = freshID() as Score;
+    await this.scores.insertOne({
+      _id: newScoreId,
+      player,
+      value,
+      submittedAt: new Date(),
+    });
+    return { score: newScoreId };
   }
 
   /**
