@@ -1,9 +1,16 @@
-# Website Changes
-There are multiple changes I have made since Assignment 2.  My biggest issue from Assignment 2 was that my main feature might not be feasible in the timeframe that we have.  I wanted to add real-time collaboration (with handwritten notes).  However, trying to interpret handwriting can take up a lot of credits when using AI, and real-time collaboration is difficult to do. Thus, I've removed the shared-notes concept, and am adding an AI tutor feature which is a little easier to implement.  The notes are also no longer handwritten, and instead typed which is more feasible and less expensive.
+# Overall Website Changes
+There are multiple changes I have made since Assignment 2.  My biggest issue from Assignment 2 was that my main feature might not be feasible in the timeframe that we have.  I wanted to add real-time collaboration (with handwritten notes).  However, trying to interpret handwriting can take up a lot of credits when using AI, and real-time collaboration is difficult to do. Thus, I've removed the shared-notes concept.  The notes are also no longer handwritten, and instead typed which is more feasible and less expensive.
 
-My main feature will now be a tagging feature which allows students to tag lectures based on how urgent it is to come back to.  This makes it simpler to review notes and visually reminds students to come back to the sections that confused them the most (helps students from pushing back studying to the last minute). The website will also have an folder feature to organize notes.  Finally, it will have a feature which will test your knowledge with questions based on your notes (ie an AI tutor).  Perhaps some syncs can also automatically tag certain sections based on how well you do on the questions that the AI tutor gives you.
+My main feature will now be a tagging feature which allows students to tag lectures based on how urgent it is to come back to.  This makes it simpler to review notes and visually reminds students to come back to the sections that confused them the most (helps students from pushing back studying to the last minute).  It will also summarize each note so the student can quickly glance at the content. The website will also have an folder feature to organize notes.  
 
 The problem that this app is trying to solve is still retaining material presented at lecture.
 
+
+# Specific Concept Changes
+## Summarizer
+In assignment 2, the summarizer concept did not have an LLM component.  Now, I have augmented it with an LLM component that allows you to either manually create the summary or use AI to do it for you for a specific note.
+
+## CollaborativeNotes
+I am no longer doing the collaboration feature.  The concept might have been a little too app-specific too.  This feature is now simply Notes.  Notes just have text and an owner associated with them.
 
 # Issues While Changing Concepts
