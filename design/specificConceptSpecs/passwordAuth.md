@@ -1,0 +1,13 @@
+**PasswordAuth**  
+- **Purpose:** Limit access to known users  
+- **Principle:** After setting a username and password for a user, the user can authenticate with that username and password and be treated each time as the same user.
+- **State:** Set of Users with 
+    - `username` string
+    - `password` string  
+- **Actions:**
+    - `register(username: String, password: String): (user: User)`
+        - **requires:** the username does not exist
+        - **effect** create a new user with this username and password and returns the user  
+    - `authenticate(user: username, password: String): (user: User)`
+        - **requires:** the username and password combination exists in the set of users
+        - **effect** returns the user

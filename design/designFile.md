@@ -11,3 +11,7 @@ As you work on your implementation, some moments will be worth recording. For ex
 This is my first attempt at trying to use the ctx tool to create a concept spec.
 ![Generating Conecpt Spec Prompt](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251013_232619.9d7e6fff.md)
 Interestingly, I tried to give the tool some background information and instead of using the background information to create a better spec, it just changed my old specs to look more like the background information.  Specifically, it changed the purpose to what it wanted the purpose to be.
+
+## Interesting moment 2
+![Implementing Password Auth](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_010352.1dce5115.md) 
+When trying to get ctx to implement my passwordAuth concept, interestingly, the LLM generated a lot of extra methods that it wanted to add.  When dealing with passwords and usernames, ctx realized how important security was, and tried to implement methods that dealt with that.  However, it also tried importing from files that didn't exist to create these new authentication methods which was a little annoying.  I also realized that having methods like changing a password and logging in might be useful in addition to the authentication, so I'm adding those.

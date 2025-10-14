@@ -102,3 +102,6 @@ Users can view, edit, rename, and delete their own notes.
         - **effect** deletes f and everything contained inside of f from the folder hierarchy 
     - `insertItem(i: Item, f: Folder)`
         - **effect** if i is already in a folder, remove it from that folder and insert it into f.  Otherwise, simply insert it into f
+
+
+**Request**
