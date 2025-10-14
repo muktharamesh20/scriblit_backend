@@ -1,0 +1,19 @@
+**Folder[Item]**  
+- **Purpose:** Organize items hierarchically  
+- **Principle:** After you create a folder and insert elements into it, you can move the folder into another folder and all the elements still belong to it.  You can insert folders or items inside a folder.
+- **State:** 
+    - Set of Folders with 
+        - name String
+        - a contained set of Folders
+        - an elements set of `Item`
+- **Actions:** 
+    - `createRootFolder(): (f: Folder)`
+        - **requires** no other folder has been created
+        - **effect** creates a root folder to nest elements and folders inside of
+    - `insertFolder(f1: Folder, f2: Folder)`
+        - **requires** f2 is not hierarchcly a descendent of f1.  In other words, f2 cannot be inside of f1 through any path of folders.
+        - **effect** if f1 is already in a folder, remove it from that folder and move it into f2.  If f1 is a new folder, just add it to f2.
+    - `deleteFolder(f: Folder)`
+        - **effect** deletes f and everything contained inside of f from the folder hierarchy 
+    - `insertItem(i: Item, f: Folder)`
+        - **effect** if i is already in a folder, remove it from that folder and insert it into f.  Otherwise, simply insert it into f
