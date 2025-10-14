@@ -1,180 +1,180 @@
-import { BcryptHashingService } from "./infrastructure/hashing/BcryptHashingService";
-import { InMemoryUserRepository } from "./infrastructure/persistence/InMemoryUserRepository";
-import { PasswordAuthService } from "./services/PasswordAuthService";
-import { AuthErrorType } from "./core/types";
+import {
+  IPasswordHasher,
+  IPasswordPolicy,
+  IUserCredentialStore,
+  UserCredentials,
+} from "./interfaces";
+import {
+  AuthenticationError,
+  InvalidCredentialsError,
+  InvalidPasswordError,
+  UsernameTakenError,
+  UserNotFoundError,
+} from "./errors";
+import { v4 as uuidv4 } from "uuid"; // Used for generating user IDs if store doesn't handle it
 
-async function bootstrap() {
-  console.log("--- Initializing Password Authentication System ---");
+/**
+ * The core Password Authentication Service.
+ * This service orchestrates user registration, login, and password changes
+ * by leveraging injected dependencies for hashing, storage, and policy enforcement.
+ */
+export class PasswordAuthService {
+  private passwordHasher: IPasswordHasher;
+  private userCredentialStore: IUserCredentialStore;
+  private passwordPolicy: IPasswordPolicy;
 
-  // 1. Instantiate concrete dependencies
-  const hashingService = new BcryptHashingService();
-  const userRepository = new InMemoryUserRepository(); // Starts with an empty database
-  const MIN_PASSWORD_LENGTH = 8;
+  constructor(
+    passwordHasher: IPasswordHasher,
+    userCredentialStore: IUserCredentialStore,
+    passwordPolicy: IPasswordPolicy,
+  ) {
+    this.passwordHasher = passwordHasher;
+    this.userCredentialStore = userCredentialStore;
+    this.passwordPolicy = passwordPolicy;
+  }
 
-  // 2. Inject dependencies into the core service
-  const passwordAuthService = new PasswordAuthService(
-    userRepository,
-    hashingService,
-    MIN_PASSWORD_LENGTH,
-  );
+  /**
+   * Registers a new user with a unique username and a password that meets policy requirements.
+   * @param username The desired username for the new user.
+   * @param password The desired password for the new user.
+   * @returns A promise that resolves with the ID of the newly registered user.
+   * @throws InvalidPasswordError if the password does not meet the configured policy.
+   * @throws UsernameTakenError if the provided username is already in use.
+   * @throws AuthenticationError for any other unexpected errors during registration.
+   */
+  public async register(username: string, password: string): Promise<string> {
+    // 1. Validate password against policy
+    const policyErrors = this.passwordPolicy.validate(password);
+    if (policyErrors.length > 0) {
+      throw new InvalidPasswordError(policyErrors.join(" "));
+    }
 
-  console.log("\n--- Scenario 1: User Registration ---");
-  let registrationResult = await passwordAuthService.register({
-    username: "testuser",
-    password: "SecurePassword123!",
-  });
-
-  if (registrationResult.success) {
-    console.log(
-      `Registration successful for: ${registrationResult.user.username}`,
+    // 2. Check if username already exists
+    const existingUser = await this.userCredentialStore.findByUsername(
+      username,
     );
-    console.log(`User ID: ${registrationResult.user.id}`);
+    if (existingUser) {
+      throw new UsernameTakenError(username);
+    }
 
-    // Try to register with the same username again
-    console.log("\nAttempting to register same user again...");
-    const duplicateRegistrationResult = await passwordAuthService.register({
-      username: "testuser",
-      password: "AnotherSecurePassword!",
-    });
-    if (!duplicateRegistrationResult.success) {
-      console.log(
-        `Failed to register duplicate user: ${duplicateRegistrationResult.message}`,
-      );
-      console.assert(
-        duplicateRegistrationResult.error ===
-          AuthErrorType.UsernameAlreadyTaken,
-        "Expected UsernameAlreadyTaken error",
+    try {
+      // 3. Hash the password
+      const hashedPassword = await this.passwordHasher.hash(password);
+
+      // 4. Create new user credentials
+      const newUser: UserCredentials = {
+        id: uuidv4(), // Generate a unique ID for the new user
+        username,
+        passwordHash: hashedPassword,
+      };
+
+      // 5. Store the new user credentials
+      await this.userCredentialStore.save(newUser);
+      return newUser.id;
+    } catch (error) {
+      // Re-throw specific errors that the store might throw (e.g., if a race condition leads to UsernameTakenError)
+      if (error instanceof UsernameTakenError) {
+        throw error;
+      }
+      // Catch and wrap other unexpected errors during the process
+      throw new AuthenticationError(
+        `Failed to register user: ${(error as Error).message}`,
       );
     }
-  } else {
-    console.error(`Registration failed: ${registrationResult.message}`);
   }
 
-  console.log("\n--- Scenario 2: User Login ---");
-  let loginResult = await passwordAuthService.login({
-    username: "testuser",
-    password: "SecurePassword123!",
-  });
+  /**
+   * Authenticates a user by verifying their username and password.
+   * @param username The user's username.
+   * @param password The user's plain-text password.
+   * @returns A promise that resolves with the ID of the authenticated user.
+   * @throws InvalidCredentialsError if the username or password do not match.
+   * @throws AuthenticationError for any other unexpected errors during login.
+   */
+  public async login(username: string, password: string): Promise<string> {
+    // 1. Retrieve user credentials by username
+    const user = await this.userCredentialStore.findByUsername(username);
+    if (!user) {
+      throw new InvalidCredentialsError(); // User not found, hide specific details for security
+    }
 
-  if (loginResult.success) {
-    console.log(`Login successful for: ${loginResult.user.username}`);
-  } else {
-    console.error(`Login failed: ${loginResult.message}`);
-    console.assert(false, "Login should have been successful");
+    try {
+      // 2. Compare the provided password with the stored hash
+      const isPasswordValid = await this.passwordHasher.compare(
+        password,
+        user.passwordHash,
+      );
+      if (!isPasswordValid) {
+        throw new InvalidCredentialsError(); // Password mismatch
+      }
+
+      return user.id; // Authentication successful
+    } catch (error) {
+      // Wrap any unexpected errors from the hasher (e.g., malformed hash)
+      throw new AuthenticationError(
+        `Failed to log in user: ${(error as Error).message}`,
+      );
+    }
   }
 
-  console.log("\n--- Scenario 3: Invalid Login ---");
-  let invalidLoginResult = await passwordAuthService.login({
-    username: "testuser",
-    password: "WrongPassword!",
-  });
+  /**
+   * Allows a user to change their password, after verifying the old password.
+   * The new password must also meet the configured policy requirements.
+   * @param userId The ID of the user whose password is to be changed.
+   * @param oldPassword The user's current plain-text password.
+   * @param newPassword The desired new plain-text password.
+   * @returns A promise that resolves to true if the password was successfully changed.
+   * @throws UserNotFoundError if the user with the given ID does not exist.
+   * @throws InvalidCredentialsError if the old password provided does not match the stored password.
+   * @throws InvalidPasswordError if the new password does not meet the configured policy.
+   * @throws AuthenticationError for any other unexpected errors during password change.
+   */
+  public async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<boolean> {
+    // 1. Retrieve user credentials by ID
+    const user = await this.userCredentialStore.findById(userId);
+    if (!user) {
+      throw new UserNotFoundError(userId);
+    }
 
-  if (!invalidLoginResult.success) {
-    console.log(
-      `Invalid login attempt failed as expected: ${invalidLoginResult.message}`,
-    );
-    console.assert(
-      invalidLoginResult.error === AuthErrorType.InvalidCredentials,
-      "Expected InvalidCredentials error",
-    );
-  } else {
-    console.assert(false, "Invalid login should have failed");
-  }
+    try {
+      // 2. Verify the old password
+      const isOldPasswordValid = await this.passwordHasher.compare(
+        oldPassword,
+        user.passwordHash,
+      );
+      if (!isOldPasswordValid) {
+        throw new InvalidCredentialsError("Old password does not match.");
+      }
+    } catch (error) {
+      throw new AuthenticationError(
+        `Error verifying old password: ${(error as Error).message}`,
+      );
+    }
 
-  console.log("\n--- Scenario 4: Change Password ---");
-  if (registrationResult.success) {
-    const userId = registrationResult.user.id;
-    console.log(`Attempting to change password for user ID: ${userId}`);
+    // 3. Validate the new password against policy
+    const policyErrors = this.passwordPolicy.validate(newPassword);
+    if (policyErrors.length > 0) {
+      throw new InvalidPasswordError(policyErrors.join(" "));
+    }
 
-    // First, try with incorrect old password
-    console.log("Attempting with incorrect old password...");
-    let changePasswordResultWrongOld = await passwordAuthService.changePassword(
-      {
+    try {
+      // 4. Hash the new password
+      const newHashedPassword = await this.passwordHasher.hash(newPassword);
+
+      // 5. Update the user's password hash in the store
+      await this.userCredentialStore.updatePasswordHash(
         userId,
-        oldPassword: "IncorrectOldPassword!",
-        newPassword: "NewSecurePassword123!",
-      },
-    );
-
-    if (!changePasswordResultWrongOld.success) {
-      console.log(
-        `Change password failed (wrong old password) as expected: ${changePasswordResultWrongOld.message}`,
+        newHashedPassword,
       );
-      console.assert(
-        changePasswordResultWrongOld.error ===
-          AuthErrorType.OldPasswordMismatch,
-        "Expected OldPasswordMismatch error",
-      );
-    } else {
-      console.assert(
-        false,
-        "Change password with wrong old password should have failed",
+      return true; // Password changed successfully
+    } catch (error) {
+      throw new AuthenticationError(
+        `Failed to change password: ${(error as Error).message}`,
       );
     }
-
-    // Now, try with correct old password
-    console.log("Attempting with correct old password...");
-    let changePasswordResult = await passwordAuthService.changePassword({
-      userId,
-      oldPassword: "SecurePassword123!",
-      newPassword: "NewSecurePassword123!",
-    });
-
-    if (changePasswordResult.success) {
-      console.log(
-        `Password changed successfully for user: ${changePasswordResult.user.username}`,
-      );
-
-      // Try logging in with the old password (should fail)
-      console.log("Attempting to login with OLD password...");
-      let loginOldPasswordResult = await passwordAuthService.login({
-        username: "testuser",
-        password: "SecurePassword123!",
-      });
-      if (!loginOldPasswordResult.success) {
-        console.log(
-          `Login with old password failed as expected: ${loginOldPasswordResult.message}`,
-        );
-      } else {
-        console.assert(false, "Login with old password should have failed");
-      }
-
-      // Try logging in with the new password (should succeed)
-      console.log("Attempting to login with NEW password...");
-      let loginNewPasswordResult = await passwordAuthService.login({
-        username: "testuser",
-        password: "NewSecurePassword123!",
-      });
-      if (loginNewPasswordResult.success) {
-        console.log(
-          `Login with new password successful for: ${loginNewPasswordResult.user.username}`,
-        );
-      } else {
-        console.assert(false, "Login with new password should have succeeded");
-      }
-    } else {
-      console.error(`Change password failed: ${changePasswordResult.message}`);
-    }
   }
-
-  console.log("\n--- Scenario 5: Register with weak password ---");
-  const weakPasswordResult = await passwordAuthService.register({
-    username: "weakuser",
-    password: "weak",
-  });
-  if (!weakPasswordResult.success) {
-    console.log(
-      `Registration with weak password failed as expected: ${weakPasswordResult.message}`,
-    );
-    console.assert(
-      weakPasswordResult.error === AuthErrorType.PasswordTooWeak,
-      "Expected PasswordTooWeak error",
-    );
-  } else {
-    console.assert(false, "Registration with weak password should have failed");
-  }
-
-  console.log("\n--- Password Authentication System Demo Complete ---");
 }
-
-bootstrap();

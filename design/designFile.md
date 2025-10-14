@@ -15,3 +15,12 @@ Interestingly, I tried to give the tool some background information and instead 
 ## Interesting moment 2
 ![Implementing Password Auth](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_010352.1dce5115.md) 
 When trying to get ctx to implement my passwordAuth concept, interestingly, the LLM generated a lot of extra methods that it wanted to add.  When dealing with passwords and usernames, ctx realized how important security was, and tried to implement methods that dealt with that.  However, it also tried importing from files that didn't exist to create these new authentication methods which was a little annoying.  I also realized that having methods like changing a password and logging in might be useful in addition to the authentication, so I'm adding those.
+
+
+# Interesting Moment 3
+![Folders](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_012241.143afb76.md)
+I realized a flaw in the folder design when ctx created one for me.  In its example, a new folder called "My Documents" is created.  However, currently, the concept can't differentiate between users.  Two users need a root folder, but the current implementation only allows one to be created in total.  Each folder, therefore needs to be attached to an owner, something that I just didn't think about before this.  That way, each person can have their own root folders and own set of folders in general.
+
+
+![a prompt](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_013829.3e7a3953.md)
+This implemented the folder.  I finally got a decent (but not perfect) implementation.
