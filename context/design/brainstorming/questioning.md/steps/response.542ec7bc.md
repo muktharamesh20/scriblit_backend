@@ -1,0 +1,141 @@
+---
+timestamp: 'Wed Oct 15 2025 17:41:45 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_174145.621040c6.md]]'
+content_id: 542ec7bccefa9ecadeab1fff3b195ee14b5885e36ce1269b8f5195e4191a0e64
+---
+
+# response:
+
+```typescript
+```
+
+For the LLM testing, use this as a reference for how to test it, but make it in the same format as above: "import { Summarizer, Section } from "./summarizer";
+
+// Test function that uses pre-transcribed text instead of calling vision API
+async function testSummarizationWithPreTranscribedText() {
+const summarizer = new Summarizer();
+
+// Test case 1: Gaussian Elimination notes
+const gaussianNotes = \`## Lecture 8: Gaussian Elimination
+
+Last Time: $Ax=b$, used Gaussian elimination + back-substitution to solve for $x$. We had a unique solution last time, but we will see other cases.
+
+This time: Gaussian elimination with matrix multiplication (instead of a system of equations).
+
+$Ax=b$
+or
+$(A|b)$
+
+The augmented matrix:
+$$ \left( \begin{array}{ccc|c} 1 & -1 & 2 & 1 \\\ -2 & 2 & -3 & -1 \\\ -3 & -1 & 2 & -3 \end{array} \right) $$
+The elements $1, -2, -3$ in the first column are the initial *pivots*.
+
+**Step 1:** Eliminate all elements except the first column pivot.
+
+The new first equation will be exactly the same as the old one.
+To eliminate elements in the first column below the pivot, we use the elementary matrix $G\_1$:
+$$ G\_1 = \begin{pmatrix} 1 & 0 & 0 \\\ 2 & 1 & 0 \\\ 3 & 0 & 1 \end{pmatrix} $$
+Applying $G\_1$ to the augmented matrix $(A|b)$:
+$$ \begin{pmatrix} 1 & 0 & 0 \\\ 2 & 1 & 0 \\\ 3 & 0 & 1 \end{pmatrix} \left( \begin{array}{ccc|c} 1 & -1 & 2 & 1 \\\ -2 & 2 & -3 & -1 \\\ -3 & -1 & 2 & -3 \end{array} \right) = \left( \begin{array}{ccc|c} 1 & -1 & 2 & 1 \\\ 0 & 0 & 1 & 1 \\\ 0 & -4 & 8 & 0 \end{array} \right) $$
+The resulting matrix parts are $G\_1 A$ and $G\_1 b$.
+
+**Step 2:** Swap rows 2 and 3.
+
+We use the elementary matrix $G\_2$ for the row swap:
+$$ G\_2 = \begin{pmatrix} 1 & 0 & 0 \\\ 0 & 0 & 1 \\\ 0 & 1 & 0 \end{pmatrix} $$
+Applying $G\_2$ to the previous result $(G\_1 A | G\_1 b)$:
+$$ \left( \begin{array}{ccc|c} 1 & -1 & 2 & 1 \\\ 0 & -4 & 8 & 0 \\\ 0 & 0 & 1 & 1 \end{array} \right) $$
+The resulting matrix parts are $G\_2 G\_1 A$ and $G\_2 G\_1 b$.
+
+This final matrix is in **REF FORM!** (Row Echelon Form).
+This transformed augmented matrix is called $(\tilde{A}|\tilde{b})$.\`;
+
+// Test case 2: Fractions notes (from notes2.png transcription)
+const fractionsNotes = \`Think of the "denominator" as the total number of equal parts something is divided into, and the "numerator" as how many of those parts you have or are considering.
+
+When comparing or adding fractions, you MUST have the same "size" of parts (same denominator). This often means finding a "common denominator."
+
+Students sometimes try to add or subtract numerators and denominators directly without finding a common denominator, leading to incorrect answers.
+
+Imagine a pizza cut into 8 slices. If you eat 3 slices, you've eaten 3/8 of the pizza. The 8 is the total slices (denominator), and the 3 is how many you ate (numerator).\`;
+
+console.log("=== TESTING SUMMARIZATION WITH PRE-TRANSCRIBED TEXT ===\n");
+
+// Test case 3: Gauss Jordan notes
+const gaussJordanNotes = \`Gauss-Jordan additional steps: make all pivots = 1, make non-zero entries above pivots
+
+*make all pivots = 1*
+$G\_3 = \begin{pmatrix} 1 & 0 & 0 \ 0 & -1/4 & 0 \ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} 1 & -1 & 2 & | & 1 \ 0 & -4 & 8 & | & 0 \ 0 & 0 & 1 & | & 1 \end{pmatrix} = \begin{pmatrix} 1 & -1 & 2 & | & 1 \ 0 & 1 & -2 & | & 0 \ 0 & 0 & 1 & | & 1 \end{pmatrix}$
+
+Labels:
+$G\_3$ (below the first matrix)
+($\tilde{A}$ | $\tilde{B}$) (below the augmented matrix)
+$G\_3 G\_2 G\_1 A$ (below the A-part of the result)
+$G\_3 G\_2 G\_1 B$ (below the B-part of the result)
+
+*eliminate above pivots*
+$\begin{pmatrix} 1 & 1 & 0 \ 0 & 1 & 2 \ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} 1 & -1 & 2 & | & 1 \ 0 & 1 & -2 & | & 0 \ 0 & 0 & 1 & | & 1 \end{pmatrix} = \begin{pmatrix} 1 & 0 & 0 & | & 1 \ 0 & 1 & 0 & | & 2 \ 0 & 0 & 1 & | & 1 \end{pmatrix}$
+
+Reduced Row Echelon Form? RREF\`;
+
+// Test 1: Gaussian Elimination
+console.log("--- Test 1: Gaussian Elimination Notes ---");
+const section1: Section = {
+id: "1",
+title: "Gaussian Elimination",
+imageData: "dummy\_image\_data",
+mimeType: "image/png",
+};
+const summary1 = await summarizer.setSummaryWithAI(gaussianNotes, section1);
+summarizer.setSummary(summary1, section1);
+console.log("Summary:", summary1);
+console.log("");
+
+// Test 2: Fractions
+console.log("--- Test 2: Fractions Notes ---");
+const section2: Section = {
+id: "2",
+title: "Fractions",
+imageData: "dummy\_image\_data",
+mimeType: "image/png",
+};
+
+// Test case 3: Gauss Jordan notes
+console.log("--- Test 3: Gauss Jordan Notes ---");
+const section3: Section = {
+id: "3",
+title: "Gauss Jordan",
+imageData: "dummy\_image\_data",
+mimeType: "image/png",
+};
+const summary3 = await summarizer.setSummaryWithAI(
+gaussJordanNotes,
+section3
+);
+summarizer.setSummary(summary3, section3);
+console.log("Summary:", summary3);
+console.log("");
+
+const summary2 = await summarizer.setSummaryWithAI(fractionsNotes, section2);
+summarizer.setSummary(summary2, section2);
+console.log("Summary:", summary2);
+console.log("");
+
+console.log("=== ALL SUMMARIES ===");
+const summaries = summarizer.getSummaries();
+for (const \[sectionId, summaryText] of Object.entries(summaries)) {
+console.log(`\nSection ${sectionId}:`);
+console.log(summaryText);
+}
+}
+
+async function main() {
+// Only run pre-transcribed text tests
+await testSummarizationWithPreTranscribedText();
+}
+
+main().catch((err) => {
+console.error(err);
+process.exit(1);
+});
+"
