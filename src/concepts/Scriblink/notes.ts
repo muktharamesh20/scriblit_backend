@@ -246,7 +246,7 @@ export default class NotesConcept {
     { noteId, user }: { noteId: Note; user: User },
   ): Promise<NoteStructure | { error: string }> {
     // Reuses the private helper which includes the crucial ownership check.
-    return this._getNoteDetails(noteId, user);
+    return await this._getNoteDetails(noteId, user);
   }
 
   /**

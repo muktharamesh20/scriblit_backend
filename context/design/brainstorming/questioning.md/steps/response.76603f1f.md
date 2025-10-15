@@ -1,5 +1,14 @@
+---
+timestamp: 'Wed Oct 15 2025 09:34:51 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_093451.0fe2491f.md]]'
+content_id: 76603f1fed5a68fad649060ae7b0de40ff3228eda27f6c6fc504674f68965743
+---
+
+# response:
+
+```typescript
 import { Collection, Db } from "npm:mongodb";
-import { ID } from "@utils/types.ts"; // Assuming @utils/types.ts exists and defines ID and Empty
+import { ID, Empty } from "@utils/types.ts"; // Assuming @utils/types.ts exists and defines ID and Empty
 import { freshID } from "@utils/database.ts"; // Assuming @utils/database.ts exists and defines freshID
 
 // Collection prefix to ensure namespace separation for PasswordAuth
@@ -14,8 +23,8 @@ type User = ID;
  * This includes the username and the securely hashed password.
  */
 interface AuthUserDocument {
-  _id: User; // The unique identifier for the user
-  username: string; // The user's chosen username
+  _id: User;          // The unique identifier for the user
+  username: string;   // The user's chosen username
   passwordHash: string; // The securely hashed password (NEVER store plaintext passwords)
 }
 
@@ -34,7 +43,7 @@ async function hashPassword(password: string): Promise<string> {
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   // Convert bytes to hex string
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -42,10 +51,7 @@ async function hashPassword(password: string): Promise<string> {
  * IMPORTANT: Similar to hashPassword, use a proper library for this comparison
  * in production environments.
  */
-async function comparePassword(
-  password: string,
-  storedHash: string,
-): Promise<boolean> {
+async function comparePassword(password: string, storedHash: string): Promise<boolean> {
   const inputHash = await hashPassword(password);
   return inputHash === storedHash;
 }
@@ -113,9 +119,7 @@ export default class PasswordAuthConcept {
 
     // If no user is found with that username, or if the provided password
     // does not match the stored hash, authentication fails.
-    if (
-      !authUser || !(await comparePassword(password, authUser.passwordHash))
-    ) {
+    if (!authUser || !(await comparePassword(password, authUser.passwordHash))) {
       return { error: "Invalid username or password." };
     }
 
@@ -124,3 +128,4 @@ export default class PasswordAuthConcept {
     return { user: authUser._id };
   }
 }
+```

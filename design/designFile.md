@@ -34,3 +34,7 @@ When implementing insertFolder, I realized that I don't have an actual method to
 This was a really interesting choice that the LLM decided to make.  For deleteFolder, it didn't delete the items, just the folders taht the items were connected to.  In hindsight, this makes a lot of sense because we're only keeping id's of items which are a seperate concept, but it was cool that the LLM knew this and neglected it.  One thing is that this will add an additional sync in the future.  When a folder is deleted, all the items within the folder should also be deleted, because otherwise they're taking up storage and you simply can't get to them.  
 
 I also was thinking that deleting an item would be part of the items concept, but I also have to add an additonal function to the folder concept to delete an item specifically from a folder, so that a sync that deletes an item can delete the item itself and delete the item from the folder that it is in.
+
+# Interesting Moment 7
+![Adding hashing](../context/design/brainstorming/questioning.md/20251015_093451.0fe2491f.md)
+Gemini added password hashing and additional method to compare hashed vs input passwords.  This was really cool that it automaticaly tried adding some security.
