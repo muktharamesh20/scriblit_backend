@@ -21,6 +21,10 @@ When trying to get ctx to implement my passwordAuth concept, interestingly, the 
 ![Folders](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_012241.143afb76.md)
 I realized a flaw in the folder design when ctx created one for me.  In its example, a new folder called "My Documents" is created.  However, currently, the concept can't differentiate between users.  Two users need a root folder, but the current implementation only allows one to be created in total.  Each folder, therefore needs to be attached to an owner, something that I just didn't think about before this.  That way, each person can have their own root folders and own set of folders in general.
 
-
+# Interesting Moment 4
 ![a prompt](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_013829.3e7a3953.md)
 This implemented the folder.  I finally got a decent (but not perfect) implementation that the AI created.
+
+# Interesting Moment 5
+![realized an oversight](../context/src/concepts/Scriblink/folder.ts/20251014_233625.2db0d96a.md)
+When implementing insertFolder, I realized that I don't have an actual method to create a standalone folder.  This one assumes that you already created one, and even lets you move one.  I'm changing the current "insertFolder" to "moveFolder", and creating a new "insertFolder" method

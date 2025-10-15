@@ -3,15 +3,18 @@
 - **Principle:** After you create a folder and insert elements into it, you can move the folder into another folder and all the elements still belong to it.  You can insert folders or items inside a folder.
 - **State:** 
     - Set of Folders with 
-        - name String
+        - title String
         - an owner User
         - a contained set of Folders
         - an elements set of `Item`
 - **Actions:** 
-    - `createRootFolder(u: User): (f: Folder)`
+    - `initializeFolders(u: User): (f: Folder)`
         - **requires** the user `u` has created no other folders
         - **effect** creates a root folder to nest elements and folders inside of that the user owns
-    - `insertFolder(f1: Folder, f2: Folder)`
+    - `createFolder(u: User, title: String, parent: Folder): (f: Folder)`
+        - **requires** `parent` exists and has owner `u`
+        - **effect** creates a folder with title `title` that is a child of the folder `parent`
+    - `moveFolder(f1: Folder, f2: Folder)`
         - **requires** f2 is not hierarchcly a descendent of f1.  In other words, f2 cannot be inside of f1 through any path of folders.  Both folders must have the same owner.
         - **effect** if f1 is already in a folder, remove it from that folder and move it into f2.  If f1 is a new folder, just add it to f2.
     - `deleteFolder(f: Folder)`
