@@ -1,336 +1,213 @@
-// --- 1. Interfaces as defined by the concept.md ---
+import { Collection, Db } from "npm:mongodb";
+import { Empty, ID } from "@utils/types.ts";
+import { freshID } from "@utils/database.ts";
+
+// Collection prefix to ensure namespace separation
+const PREFIX = "Scriblink" + ".";
+
+// Generic types for the concept's external dependencies
+type Owner = ID;
+type Item = ID;
+
+// Internal entity types, represented as IDs
+type Folder = ID;
 
 /**
- * Represents a reference to an item (sub-folder or file) contained within a folder.
- * This structure describes the type and ID of a child item, but not the item's full details.
+ * State: A set of Folders with an owner, title, contained set of Folders, and elements set of Items.
  */
-export interface FolderItemReference {
-  /** The unique identifier of the contained item. */
-  id: string;
-  /** Indicates if the item is a sub-folder or a file. */
-  type: "folder" | "file";
+interface FolderStructure {
+  _id: Folder;
+  author: Owner;
+  title: string;
+  folders: Folder[];
+  elements: Item[];
 }
 
 /**
- * Represents a Folder concept, a fundamental organizational unit in a hierarchical file system,
- * capable of containing `Files` (referred to by `FolderItemReference` with type 'file')
- * and other nested `Folders` (referred to by `FolderItemReference` with type 'folder').
+ * @concept Folder
+ * @purpose To organize items hierarchically
  */
-export interface Folder {
-  /** A globally unique identifier for this folder. */
-  id: string;
-  /** The user-facing name of the folder. Must be non-empty. */
-  name: string;
-  /**
-   * The `id` of the parent folder. If `null`, this folder is a root folder.
-   */
-  parentId: string | null;
-  /** The timestamp when this folder was initially created. */
-  createdAt: Date;
-  /** The timestamp when this folder was last modified
-   * (e.g., name changed, parent changed, children added/removed). */
-  updatedAt: Date;
-  /** An array of `FolderItemReference` objects representing the items contained within this folder. */
-  children: FolderItemReference[];
-}
+export default class LikertSurveyConcept {
+  folders: Collection<FolderStructure>;
+  elements: Collection<Item>;
 
-// --- 2. Helper Functions (not part of the concept itself, but necessary for implementation) ---
-
-/**
- * Generates a simple, unique ID string for new folders.
- * In a real-world application, this would typically use a robust UUID library (e.g., 'uuid').
- */
-function generateUniqueId(): string {
-  return `f_${Math.random().toString(36).substring(2, 11)}`;
-}
-
-// --- 3. FolderService Class implementing the specified behaviors ---
-
-/**
- * A service class responsible for managing Folder operations,
- * implementing all behaviors and adhering to the properties defined in the `Folder` concept.
- * This service uses an in-memory Map to simulate data storage.
- */
-export class FolderService {
-  // In-memory storage for folders, mapping folder ID to Folder object.
-  private folders: Map<string, Folder> = new Map();
-
-  /**
-   * Retrieves a folder by its unique ID.
-   * @param id The ID of the folder to retrieve.
-   * @returns The folder object if found, otherwise `undefined`.
-   *          Returns a copy to prevent direct modification of internal state.
-   */
-  getFolderById(id: string): Folder | undefined {
-    const folder = this.folders.get(id);
-    return folder ? { ...folder } : undefined;
+  constructor(private readonly db: Db) {
+    this.folders = this.db.collection(PREFIX + "folders");
+    this.elements = this.db.collection(PREFIX + "elements");
   }
 
   /**
-   * Creates a new folder with the given name and parent.
-   * @param name The name for the new folder.
-   * @param parentId The ID of the parent folder, or `null` for a root folder.
-   * @returns The newly created folder object.
-   * @throws Error if `name` is empty or if `parentId` is provided but no folder with that ID exists.
-   *
-   * @post-conditions:
-   * - A new `Folder` object exists with a unique `id`.
-   * - `createdAt` and `updatedAt` are set to the current time.
-   * - If `parentId` is provided, the parent folder's `updatedAt` is updated,
-   *   and the new folder's `FolderItemReference` is added to its `children`.
+   * Action: Creates the initial root folder for a user.
+   * @requires user has not created any other folders
+   * @effects A new root folder associated with the user is created and its ID is returned.
    */
-  createFolder(name: string, parentId: string | null): Folder {
-    if (!name || name.trim() === "") {
-      throw new Error("Folder name cannot be empty.");
+  async createRootFolder(
+    { user }: {
+      user: Owner;
+    },
+  ): Promise<{ folder: Folder } | { error: string }> {
+    if (await this.folders.findOne({ author: user })) {
+      return { error: "user has already created folders" };
     }
 
-    const now = new Date();
-    const newFolder: Folder = {
-      id: generateUniqueId(),
-      name: name.trim(),
-      parentId: parentId,
-      createdAt: now,
-      updatedAt: now,
-      children: [],
-    };
-
-    this.folders.set(newFolder.id, newFolder);
-
-    // Post-condition handling for parent folder
-    if (parentId !== null) {
-      const parentFolder = this.folders.get(parentId);
-      if (!parentFolder) {
-        // If parent doesn't exist, remove the newly created folder to maintain data integrity.
-        this.folders.delete(newFolder.id);
-        throw new Error(`Parent folder with ID '${parentId}' not found.`);
-      }
-      parentFolder.children.push({ id: newFolder.id, type: "folder" });
-      parentFolder.updatedAt = new Date();
-      this.folders.set(parentId, parentFolder); // Update parent in map
-    }
-
-    return { ...newFolder }; // Return a copy
+    const folderId = freshID() as Folder;
+    await this.folders.insertOne({
+      _id: folderId,
+      author: user,
+      title: "Root",
+      folders: [],
+      elements: [],
+    });
+    return { folder: folderId };
   }
 
   /**
-   * Renames an existing folder.
-   * @param folderId The ID of the folder to rename.
-   * @param newName The new name for the folder. Must be non-empty.
-   * @returns The updated folder object.
-   * @throws Error if `folderId` not found or `newName` is empty.
-   *
-   * @pre-conditions:
-   * - A folder with `folderId` must exist.
-   * @post-conditions:
-   * - The `name` property of the specified folder is updated.
-   * - The `updatedAt` property of the folder is updated.
+   * Action: Adds a new question to an existing survey.
+   * @requires The survey must exist.
+   * @effects A new question is created and its ID is returned.
    */
-  renameFolder(folderId: string, newName: string): Folder {
-    if (!newName || newName.trim() === "") {
-      throw new Error("New folder name cannot be empty.");
+  async addQuestion(
+    { survey, text }: { survey: Survey; text: string },
+  ): Promise<{ question: Question } | { error: string }> {
+    const existingSurvey = await this.surveys.findOne({ _id: survey });
+    if (!existingSurvey) {
+      return { error: `Survey with ID ${survey} not found.` };
     }
 
-    const folder = this.folders.get(folderId);
-    if (!folder) {
-      throw new Error(`Folder with ID '${folderId}' not found.`);
-    }
-
-    folder.name = newName.trim();
-    folder.updatedAt = new Date();
-    this.folders.set(folderId, folder); // Update folder in map
-    return { ...folder };
+    const questionId = freshID() as Question;
+    await this.questions.insertOne({ _id: questionId, survey, text });
+    return { question: questionId };
   }
 
   /**
-   * Moves an existing folder to a new parent folder.
-   * @param folderId The ID of the folder to move.
-   * @param newParentId The ID of the new parent folder, or `null` to make it a root folder.
-   * @returns The moved folder object.
-   * @throws Error if pre-conditions are not met (folder not found, new parent not found, moving into self/descendant).
-   *
-   * @pre-conditions:
-   * - A folder with `folderId` must exist.
-   * - If `newParentId` is provided, a folder with `newParentId` must exist.
-   * - A folder cannot be moved into itself or one of its descendants.
-   * @post-conditions:
-   * - The `parentId` property of the specified folder is updated.
-   * - The `updatedAt` property of the folder is updated.
-   * - The `FolderItemReference` for `folderId` is removed from the old parent's `children` (if any).
-   * - The `FolderItemReference` for `folderId` is added to the new parent's `children` (if `newParentId` is not null).
-   * - The `updatedAt` of both old and new parent folders (if applicable) are updated.
+   * Action: Submits a response to a question.
+   * @requires The question must exist.
+   * @requires The respondent must not have already responded to this question.
+   * @requires The response value must be within the survey's defined scale.
+   * @effects A new response is recorded in the state.
    */
-  moveFolder(folderId: string, newParentId: string | null): Folder {
-    const folderToMove = this.folders.get(folderId);
-    if (!folderToMove) {
-      throw new Error(`Folder with ID '${folderId}' not found.`);
+  async submitResponse(
+    { respondent, question, value }: {
+      respondent: Respondent;
+      question: Question;
+      value: number;
+    },
+  ): Promise<Empty | { error: string }> {
+    const questionDoc = await this.questions.findOne({ _id: question });
+    if (!questionDoc) {
+      return { error: `Question with ID ${question} not found.` };
     }
 
-    // Pre-condition: If newParentId is provided, a folder with newParentId must exist.
-    let newParentFolder: Folder | undefined;
-    if (newParentId !== null) {
-      newParentFolder = this.folders.get(newParentId);
-      if (!newParentFolder) {
-        throw new Error(
-          `New parent folder with ID '${newParentId}' not found.`,
-        );
-      }
-      // Pre-condition: A folder cannot be moved into itself or one of its descendants.
-      if (
-        folderId === newParentId || this.isDescendant(folderId, newParentId)
-      ) {
-        throw new Error("Cannot move a folder into itself or its descendant.");
-      }
+    const surveyDoc = await this.surveys.findOne({ _id: questionDoc.survey });
+    if (!surveyDoc) {
+      // This indicates a data integrity issue but is a good safeguard.
+      return { error: "Associated survey for the question not found." };
     }
 
-    const oldParentId = folderToMove.parentId;
-
-    // Post-condition: Remove from old parent's children (if any).
-    if (oldParentId !== null) {
-      const oldParentFolder = this.folders.get(oldParentId);
-      if (oldParentFolder) {
-        oldParentFolder.children = oldParentFolder.children.filter(
-          (item) => !(item.id === folderId && item.type === "folder"),
-        );
-        oldParentFolder.updatedAt = new Date();
-        this.folders.set(oldParentId, oldParentFolder); // Update old parent in map
-      }
+    if (value < surveyDoc.scaleMin || value > surveyDoc.scaleMax) {
+      return {
+        error:
+          `Response value ${value} is outside the survey's scale [${surveyDoc.scaleMin}, ${surveyDoc.scaleMax}].`,
+      };
     }
 
-    // Post-condition: Update parentId of the folder being moved.
-    folderToMove.parentId = newParentId;
-    folderToMove.updatedAt = new Date();
-    this.folders.set(folderId, folderToMove); // Update moved folder in map
-
-    // Post-condition: Add to new parent's children (if newParentId is not null).
-    if (newParentFolder) {
-      newParentFolder.children.push({ id: folderId, type: "folder" });
-      newParentFolder.updatedAt = new Date();
-      this.folders.set(newParentId!, newParentFolder); // Update new parent in map
+    const existingResponse = await this.responses.findOne({
+      respondent,
+      question,
+    });
+    if (existingResponse) {
+      return {
+        error:
+          "Respondent has already answered this question. Use updateResponse to change it.",
+      };
     }
 
-    return { ...folderToMove };
+    const responseId = freshID() as Response;
+    await this.responses.insertOne({
+      _id: responseId,
+      respondent,
+      question,
+      value,
+    });
+
+    return {};
   }
 
   /**
-   * Helper method to determine if a potential parent is a descendant of the folder being moved.
-   * @param ancestorId The ID of the potential ancestor folder.
-   * @param descendantId The ID of the potential descendant folder.
-   * @returns `true` if `descendantId` is a descendant of `ancestorId`, `false` otherwise.
+   * Action: Updates an existing response to a question.
+   * @requires The question must exist.
+   * @requires A response from the given respondent to the question must already exist.
+   * @requires The new response value must be within the survey's defined scale.
+   * @effects The existing response's value is updated.
    */
-  private isDescendant(ancestorId: string, descendantId: string): boolean {
-    let currentFolderId: string | null = descendantId;
-    while (currentFolderId !== null) {
-      if (currentFolderId === ancestorId) {
-        return true;
-      }
-      const currentFolder = this.folders.get(currentFolderId);
-      currentFolderId = currentFolder ? currentFolder.parentId : null;
+  async updateResponse(
+    { respondent, question, value }: {
+      respondent: Respondent;
+      question: Question;
+      value: number;
+    },
+  ): Promise<Empty | { error: string }> {
+    const questionDoc = await this.questions.findOne({ _id: question });
+    if (!questionDoc) {
+      return { error: `Question with ID ${question} not found.` };
     }
-    return false;
+
+    const surveyDoc = await this.surveys.findOne({ _id: questionDoc.survey });
+    if (!surveyDoc) {
+      return { error: "Associated survey for the question not found." };
+    }
+
+    if (value < surveyDoc.scaleMin || value > surveyDoc.scaleMax) {
+      return {
+        error:
+          `Response value ${value} is outside the survey's scale [${surveyDoc.scaleMin}, ${surveyDoc.scaleMax}].`,
+      };
+    }
+
+    const result = await this.responses.updateOne({ respondent, question }, {
+      $set: { value },
+    });
+
+    if (result.matchedCount === 0) {
+      return {
+        error:
+          "No existing response found to update. Use submitResponse to create one.",
+      };
+    }
+
+    return {};
   }
 
   /**
-   * Adds a reference to a folder or file to a folder's contents.
-   * This operation assumes the `parentId` of the `itemId` (if it's a folder) is already correctly set
-   * to `folderId` or is about to be set by a related operation (like `moveFolder` or `createFolder`).
-   * This method primarily updates the `children` array of the target `folderId`.
-   * @param folderId The ID of the folder to add the item to.
-   * @param itemId The ID of the item (sub-folder or file) to add.
-   * @param itemType The type of the item being added.
-   * @returns The updated folder object.
-   * @throws Error if `folderId` not found, or if the item is already a child of `folderId`.
-   *
-   * @pre-conditions:
-   * - A folder with `folderId` must exist.
-   * - The item with `itemId` must exist and match `itemType` (assumed by `addFolderItem`, but not explicitly checked for `file` type without a `FileService`).
-   * - The item must not already be a child of `folderId`.
-   * @post-conditions:
-   * - A new `FolderItemReference` is added to the `children` array of the specified `folderId`.
-   * - The `updatedAt` property of `folderId` is updated.
+   * Query: Retrieves all questions associated with a specific survey.
    */
-  addFolderItem(
-    folderId: string,
-    itemId: string,
-    itemType: "folder" | "file",
-  ): Folder {
-    const folder = this.folders.get(folderId);
-    if (!folder) {
-      throw new Error(`Folder with ID '${folderId}' not found.`);
-    }
-
-    // Pre-condition: The item must not already be a child of folderId.
-    if (
-      folder.children.some((child) =>
-        child.id === itemId && child.type === itemType
-      )
-    ) {
-      throw new Error(
-        `Item with ID '${itemId}' and type '${itemType}' is already a child of folder '${folderId}'.`,
-      );
-    }
-
-    // Basic consistency check if adding a folder as child:
-    // The child folder should either not have a parent, or its parent should be this folderId.
-    // If it's a folder being added and it has a different parent, `moveFolder` should be used.
-    if (itemType === "folder") {
-      const childFolder = this.folders.get(itemId);
-      if (!childFolder) {
-        throw new Error(`Child folder with ID '${itemId}' not found.`);
-      }
-      // If the child folder's parentId is not this folderId, it's an inconsistent state
-      // unless this `addFolderItem` is designed to implicitly update the child's parentId.
-      // Following "exactly as written", this method just updates the *parent's* children list.
-      // For robust systems, a dedicated `moveFolder` handles parentId changes.
-    }
-
-    folder.children.push({ id: itemId, type: itemType });
-    folder.updatedAt = new Date();
-    this.folders.set(folderId, folder); // Update folder in map
-    return { ...folder };
+  async _getSurveyQuestions(
+    { survey }: { survey: Survey },
+  ): Promise<QuestionDoc[]> {
+    return await this.questions.find({ survey }).toArray();
   }
 
   /**
-   * Removes a reference to an item (sub-folder or file) from a folder's contents.
-   * This method only removes the reference from the parent folder's `children` array.
-   * It does *not* delete the actual item (sub-folder or file) itself.
-   * @param folderId The ID of the folder to remove the item from.
-   * @param itemId The ID of the item (sub-folder or file) to remove.
-   * @returns The updated folder object.
-   * @throws Error if `folderId` not found or item not a child of the specified folder.
-   *
-   * @pre-conditions:
-   * - A folder with `folderId` must exist.
-   * - The item with `itemId` must be a child of `folderId`.
-   * @post-conditions:
-   * - The `FolderItemReference` for `itemId` is removed from the `children` array of `folderId`.
-   * - The `updatedAt` property of `folderId` is updated.
+   * Query: Retrieves all responses for a given survey. This involves finding all
+   * questions for the survey first, then finding all responses to those questions.
    */
-  removeFolderItem(folderId: string, itemId: string): Folder {
-    const folder = this.folders.get(folderId);
-    if (!folder) {
-      throw new Error(`Folder with ID '${folderId}' not found.`);
-    }
-
-    const initialChildrenCount = folder.children.length;
-    folder.children = folder.children.filter((child) => child.id !== itemId);
-
-    // Pre-condition check: if the count didn't change, the item wasn't a child.
-    if (folder.children.length === initialChildrenCount) {
-      throw new Error(
-        `Item with ID '${itemId}' not found as a child of folder '${folderId}'.`,
-      );
-    }
-
-    folder.updatedAt = new Date();
-    this.folders.set(folderId, folder); // Update folder in map
-    return { ...folder };
+  async _getSurveyResponses(
+    { survey }: { survey: Survey },
+  ): Promise<ResponseDoc[]> {
+    const surveyQuestions = await this.questions.find({ survey }).project({
+      _id: 1,
+    }).toArray();
+    const questionIds = surveyQuestions.map((q) => q._id as Question);
+    return await this.responses.find({ question: { $in: questionIds } })
+      .toArray();
   }
 
   /**
-   * Clears all folders from the service's in-memory storage.
-   * (This operation is not part of the `folder.md` concept specification but is useful for testing or resetting state.)
+   * Query: Retrieves all answers submitted by a specific respondent.
    */
-  clearAllFolders(): void {
-    this.folders.clear();
+  async _getRespondentAnswers(
+    { respondent }: { respondent: Respondent },
+  ): Promise<ResponseDoc[]> {
+    return await this.responses.find({ respondent }).toArray();
   }
 }

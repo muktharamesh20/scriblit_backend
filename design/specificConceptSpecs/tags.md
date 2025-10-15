@@ -10,6 +10,6 @@
     - `addTag(label: String, item: Item): (t: Tag)`
         - **requires** there does not already exist a tag associated with that label and item
         - **effect** creates a tag with that label and item
-    - `removeTag(t: Tag)`
-        - **requires** t is in the set of tags
-        - **effect** removes the tag
+    - `removeTagFromItem(t: Tag, item: Item)`
+        - **requires** t is in the set of tags, and item is associated with t
+        - **effect** removes the tag from the item
