@@ -21,3 +21,6 @@
         - **effect** deletes f and everything contained inside of f from the folder hierarchy 
     - `insertItem(i: Item, f: Folder)`
         - **effect** if i is already in a folder, remove it from that folder and insert it into f.  Otherwise, simply insert it into f
+    - `deleteItem(i: Item)`
+        - **requires** the item exists 
+        - **effect** removes the item from whichever folder it is currently located in.

@@ -14,3 +14,4 @@ In assignment 2, the summarizer concept did not have an LLM component.  Now, I h
 I am no longer doing the collaboration feature.  The concept might have been a little too app-specific too.  This feature is now simply Notes.  Notes just have text and an owner associated with them.
 
 # Issues While Changing Concepts
+Multiple changes to the folder concept.  I realized that I needed to add a user to the folder concept to track who owns each folder.  I also realized how seperated the concepts actually are (check designFile) and that I needed a deleteItem method here and I didn't actually need to delete items in the deleteFolder method (since we're only storing ids... the actual concept implementing the item/note will deal with that).
