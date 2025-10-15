@@ -38,3 +38,7 @@ I also was thinking that deleting an item would be part of the items concept, bu
 # Interesting Moment 7
 ![Adding hashing](../context/design/brainstorming/questioning.md/20251015_093451.0fe2491f.md)
 Gemini added password hashing and additional method to compare hashed vs input passwords.  This was really cool that it automaticaly tried adding some security.
+
+# Interesting Moment 8
+![implementing tagging](../context/design/brainstorming/questioning.md/20251015_100215.ba3aa5af.md)
+After reading through what the LLM implemented, I realized I didn't really put in the spec how addTag and removeTag worked, but the LLM could interpret it and even looks for edge cases which is pretty cool.  As an aside, it's also interesting how many comments the LLM is putting with my newer version of the prompt.  I think it's helping it get better results too.
