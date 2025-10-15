@@ -1,81 +1,41 @@
-# prompt: 
-Create a test file for the following passwordAuth concept that looks similar to the example that I show below for a different concept.  Make sure that all the types work out, and try using the same libraries (like testDb) from the project itself. 
+---
+timestamp: 'Wed Oct 15 2025 16:39:45 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_163945.8b992dfe.md]]'
+content_id: 4a5d2bd57181dc6bc2236025b8f6128913df4530942507df1018b63b828a7412
+---
 
-[@passwordAuthConcept](../../src/concepts/Scriblink/passwordAuth.ts)
+# prompt:
 
-'// This import loads the `.env` file as environment variables
-import "jsr:@std/dotenv/load";
-import { Db, MongoClient } from "npm:mongodb";
-import { ID } from "@utils/types.ts";
-import { generate } from "jsr:@std/uuid/unstable-v7";
+Create a test file for the following notes concept that looks similar to the example that I show below for a different concept.  Make sure that all the types work out, and try using the same libraries (like testDb) from the project itself.
 
-async function initMongoClient() {
-  const DB_CONN = Deno.env.get("MONGODB_URL");
-  if (DB_CONN === undefined) {
-    throw new Error("Could not find environment variable: MONGODB_URL");
-  }
-  const client = new MongoClient(DB_CONN);
-  try {
-    await client.connect();
-  } catch (e) {
-    throw new Error("MongoDB connection failed: " + e);
-  }
-  return client;
-}
+**Notes\[User]**
 
-async function init() {
-  const client = await initMongoClient();
-  const DB_NAME = Deno.env.get("DB_NAME");
-  if (DB_NAME === undefined) {
-    throw new Error("Could not find environment variable: DB_NAME");
-  }
-  return [client, DB_NAME] as [MongoClient, string];
-}
+* **Purpose** records written information
+* **Principle** Each user can create and manage their own notes.
+  A note belongs to exactly one user and contains a title and body text.
+  Users can view, edit, rename, and delete their own notes.
+* **State** Set of Notes with
 
-async function dropAllCollections(db: Db): Promise<void> {
-  try {
-    // Get all collection names
-    const collections = await db.listCollections().toArray();
+  * title String
+  * content String
+  * owner User
+  * date\_created Date
+  * last\_modified Date
 
-    // Drop each collection
-    for (const collection of collections) {
-      await db.collection(collection.name).drop();
-    }
-  } catch (error) {
-    console.error("Error dropping collections:", error);
-    throw error;
-  }
-}
-
-/**
- * MongoDB database configured by .env
- * @returns {[Db, MongoClient]} initialized database and client
- */
-export async function getDb() {
-  const [client, DB_NAME] = await init();
-  return [client.db(DB_NAME), client];
-}
-
-/**
- * Test database initialization
- * @returns {[Db, MongoClient]} initialized test database and client
- */
-export async function testDb() {
-  const [client, DB_NAME] = await init();
-  const test_DB_NAME = `test-${DB_NAME}`;
-  const test_Db = client.db(test_DB_NAME);
-  await dropAllCollections(test_Db);
-  return [test_Db, client] as [Db, MongoClient];
-}
-
-/**
- * Creates a fresh ID.
- * @returns {ID} UUID v7 generic ID.
- */
-export function freshID() {
-  return generate() as ID;
-}
-'
+  -invariants
+  \- each note has exactly one owner
+  \- last\_modified ≥ date\_created
+  \- only the owner can modify or delete the note
+* **Actions**
+  * `createNote(t?: String, u: User): (n: Note)`
+    * **effect:** Creates a new note.  If t is specified, the title is t.  Otherwise, the title is "Untitled".  date\_created and last\_modified is set to the current time.  The owner is u.
+  * `deleteNote(note: Note)`
+    * **requires** note exists
+    * **effect** deletes the notes
+  * `setTitle(t: String, n: Note)`
+    * **effect** Renames the title of note n with as t
+  * `updateContent(t: String, n: Note)`
+    * **effect** Replaces the content associated with `n` with `t`.  Also updates last\_modified to the current time.
 
 ```
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -386,10 +346,4 @@ Deno.test("Action: updateResponse successfully updates a response and enforces r
     await client.close();
   }
 });
-```
-
-# response:
-
-```typescript
-
 ```

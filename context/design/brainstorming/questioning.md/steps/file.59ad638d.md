@@ -1,7 +1,140 @@
-# prompt: 
-Create a test file for the following passwordAuth concept that looks similar to the example that I show below for a different concept.  Make sure that all the types work out, and try using the same libraries (like testDb) from the project itself. 
+---
+timestamp: 'Wed Oct 15 2025 17:24:37 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_172437.35b53f6b.md]]'
+content_id: 59ad638dacad592ed565ee9e6d6345a4b4eeb576958caaba90c1f7326a3b3f47
+---
 
-[@passwordAuthConcept](../../src/concepts/Scriblink/passwordAuth.ts)
+# file: src/concepts/Scriblink/passwordAuth.ts
+
+```typescript
+import { Collection, Db } from "npm:mongodb";
+import { ID } from "@utils/types.ts"; // Assuming @utils/types.ts exists and defines ID and Empty
+import { freshID } from "@utils/database.ts"; // Assuming @utils/database.ts exists and defines freshID
+
+// Collection prefix to ensure namespace separation for PasswordAuth
+const PREFIX = "PasswordAuth" + ".";
+
+// Generic type for the concept's external representation of a User.
+// When PasswordAuth returns a user, it refers to their unique identifier.
+type User = ID;
+
+/**
+ * Internal entity type for a user document stored in the database.
+ * This includes the username and the securely hashed password.
+ */
+interface AuthUserDocument {
+  _id: User; // The unique identifier for the user
+  username: string; // The user's chosen username
+  passwordHash: string; // The securely hashed password (NEVER store plaintext passwords)
+}
+
+/**
+ * Helper function to securely hash a plaintext password.
+ * IMPORTANT: In a production application, use a strong, asynchronous,
+ * salting and adaptive hashing library like bcrypt (e.g., `deno.land/x/bcrypt`).
+ * This SHA-256 implementation is for demonstration purposes ONLY and is NOT
+ * secure enough for real-world password storage due to lack of salting and
+ * computational expense.
+ */
+async function hashPassword(password: string): Promise<string> {
+  const textEncoder = new TextEncoder();
+  const data = textEncoder.encode(password);
+  // Using Web Cryptography API for basic hashing demonstration in Deno
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // Convert bytes to hex string
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Helper function to compare a plaintext password with a stored hash.
+ * IMPORTANT: Similar to hashPassword, use a proper library for this comparison
+ * in production environments.
+ */
+async function comparePassword(
+  password: string,
+  storedHash: string,
+): Promise<boolean> {
+  const inputHash = await hashPassword(password);
+  return inputHash === storedHash;
+}
+
+/**
+ * @concept PasswordAuth
+ * @purpose To limit access to known users by authenticating with username and password.
+ * @principle After setting a username and password for a user, the user can
+ *   authenticate with that username and password and be treated each time as the same user.
+ */
+export default class PasswordAuthConcept {
+  // The MongoDB collection where user documents (with username and password hash) are stored.
+  users: Collection<AuthUserDocument>;
+
+  constructor(private readonly db: Db) {
+    this.users = this.db.collection(PREFIX + "users");
+  }
+
+  /**
+   * Action: Registers a new user in the system.
+   * @param username The desired unique username for the new user.
+   * @param password The plaintext password for the new user. This will be hashed before storage.
+   * @requires The provided username must not already exist in the system.
+   * @effects A new user document is created in the database with a unique ID,
+   *          the given username, and a securely hashed version of the password.
+   *          Returns the ID of the newly created user.
+   */
+  async register(
+    { username, password }: { username: string; password: string },
+  ): Promise<{ user: User } | { error: string }> {
+    // Requirement: the username does not exist
+    const existingUser = await this.users.findOne({ username });
+    if (existingUser) {
+      return { error: `Username '${username}' already exists.` };
+    }
+
+    const userId = freshID() as User; // Generate a new unique ID for the user
+    const passwordHash = await hashPassword(password); // Hash the password for secure storage
+
+    // Effect: create a new user with this username and password hash
+    await this.users.insertOne({
+      _id: userId,
+      username,
+      passwordHash,
+    });
+
+    return { user: userId }; // Return the ID of the newly registered user
+  }
+
+  /**
+   * Action: Authenticates a user against the stored credentials.
+   * @param username The username provided by the user attempting to authenticate.
+   * @param password The plaintext password provided by the user.
+   * @requires The username and password combination must exactly match an existing
+   *           user's credentials in the system.
+   * @effects If successful, the ID of the authenticated user is returned.
+   *          If authentication fails (username not found or password incorrect),
+   *          an error is returned.
+   */
+  async authenticate(
+    { username, password }: { username: string; password: string },
+  ): Promise<{ user: User } | { error: string }> {
+    // Find the user document by the provided username
+    const authUser = await this.users.findOne({ username });
+
+    // If no user is found with that username, or if the provided password
+    // does not match the stored hash, authentication fails.
+    if (
+      !authUser || !(await comparePassword(password, authUser.passwordHash))
+    ) {
+      return { error: "Invalid username or password." };
+    }
+
+    // Requirement: the username and password combination exists and matches.
+    // Effect: returns the user's ID
+    return { user: authUser._id };
+  }
+}
+
+```
 
 '// This import loads the `.env` file as environment variables
 import "jsr:@std/dotenv/load";
@@ -10,72 +143,78 @@ import { ID } from "@utils/types.ts";
 import { generate } from "jsr:@std/uuid/unstable-v7";
 
 async function initMongoClient() {
-  const DB_CONN = Deno.env.get("MONGODB_URL");
-  if (DB_CONN === undefined) {
-    throw new Error("Could not find environment variable: MONGODB_URL");
-  }
-  const client = new MongoClient(DB_CONN);
-  try {
-    await client.connect();
-  } catch (e) {
-    throw new Error("MongoDB connection failed: " + e);
-  }
-  return client;
+const DB\_CONN = Deno.env.get("MONGODB\_URL");
+if (DB\_CONN === undefined) {
+throw new Error("Could not find environment variable: MONGODB\_URL");
+}
+const client = new MongoClient(DB\_CONN);
+try {
+await client.connect();
+} catch (e) {
+throw new Error("MongoDB connection failed: " + e);
+}
+return client;
 }
 
 async function init() {
-  const client = await initMongoClient();
-  const DB_NAME = Deno.env.get("DB_NAME");
-  if (DB_NAME === undefined) {
-    throw new Error("Could not find environment variable: DB_NAME");
-  }
-  return [client, DB_NAME] as [MongoClient, string];
+const client = await initMongoClient();
+const DB\_NAME = Deno.env.get("DB\_NAME");
+if (DB\_NAME === undefined) {
+throw new Error("Could not find environment variable: DB\_NAME");
+}
+return \[client, DB\_NAME] as \[MongoClient, string];
 }
 
 async function dropAllCollections(db: Db): Promise<void> {
-  try {
-    // Get all collection names
-    const collections = await db.listCollections().toArray();
+try {
+// Get all collection names
+const collections = await db.listCollections().toArray();
 
-    // Drop each collection
-    for (const collection of collections) {
-      await db.collection(collection.name).drop();
-    }
-  } catch (error) {
-    console.error("Error dropping collections:", error);
-    throw error;
+```
+// Drop each collection
+for (const collection of collections) {
+  await db.collection(collection.name).drop();
+}
+```
+
+} catch (error) {
+console.error("Error dropping collections:", error);
+throw error;
+}
+}
+
+/\*\*
+
+* MongoDB database configured by .env
+* @returns {\[Db, MongoClient]} initialized database and client
+  \*/
+  export async function getDb() {
+  const \[client, DB\_NAME] = await init();
+  return \[client.db(DB\_NAME), client];
   }
-}
 
-/**
- * MongoDB database configured by .env
- * @returns {[Db, MongoClient]} initialized database and client
- */
-export async function getDb() {
-  const [client, DB_NAME] = await init();
-  return [client.db(DB_NAME), client];
-}
+/\*\*
 
-/**
- * Test database initialization
- * @returns {[Db, MongoClient]} initialized test database and client
- */
-export async function testDb() {
-  const [client, DB_NAME] = await init();
-  const test_DB_NAME = `test-${DB_NAME}`;
-  const test_Db = client.db(test_DB_NAME);
-  await dropAllCollections(test_Db);
-  return [test_Db, client] as [Db, MongoClient];
-}
+* Test database initialization
+* @returns {\[Db, MongoClient]} initialized test database and client
+  \*/
+  export async function testDb() {
+  const \[client, DB\_NAME] = await init();
+  const test\_DB\_NAME = `test-${DB_NAME}`;
+  const test\_Db = client.db(test\_DB\_NAME);
+  await dropAllCollections(test\_Db);
+  return \[test\_Db, client] as \[Db, MongoClient];
+  }
 
-/**
- * Creates a fresh ID.
- * @returns {ID} UUID v7 generic ID.
- */
-export function freshID() {
+/\*\*
+
+* Creates a fresh ID.
+* @returns {ID} UUID v7 generic ID.
+  \*/
+  export function freshID() {
   return generate() as ID;
-}
-'
+  }
+  '
 
 ```
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -386,10 +525,4 @@ Deno.test("Action: updateResponse successfully updates a response and enforces r
     await client.close();
   }
 });
-```
-
-# response:
-
-```typescript
-
 ```

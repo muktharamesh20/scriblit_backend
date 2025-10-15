@@ -1,7 +1,41 @@
-# prompt: 
-Create a test file for the following passwordAuth concept that looks similar to the example that I show below for a different concept.  Make sure that all the types work out, and try using the same libraries (like testDb) from the project itself. 
+---
+timestamp: 'Wed Oct 15 2025 17:18:01 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_171801.4b83db8c.md]]'
+content_id: 5c85f91ddce6faed73b7e648d91733000414f0af6d1c80ea552fcde912b2beae
+---
 
-[@passwordAuthConcept](../../src/concepts/Scriblink/passwordAuth.ts)
+# prompt:
+
+Create a test file for the following notes concept that looks similar to the example that I show below for a different concept.  Make sure that all the types work out, and try using the same libraries (like testDb) from the project itself.
+
+**Notes\[User]**
+
+* **Purpose** records written information
+* **Principle** Each user can create and manage their own notes.
+  A note belongs to exactly one user and contains a title and body text.
+  Users can view, edit, rename, and delete their own notes.
+* **State** Set of Notes with
+
+  * title String
+  * content String
+  * owner User
+  * date\_created Date
+  * last\_modified Date
+
+  -invariants
+  \- each note has exactly one owner
+  \- last\_modified ≥ date\_created
+  \- only the owner can modify or delete the note
+* **Actions**
+  * `createNote(t?: String, u: User): (n: Note)`
+    * **effect:** Creates a new note.  If t is specified, the title is t.  Otherwise, the title is "Untitled".  date\_created and last\_modified is set to the current time.  The owner is u.
+  * `deleteNote(note: Note)`
+    * **requires** note exists
+    * **effect** deletes the notes
+  * `setTitle(t: String, n: Note)`
+    * **effect** Renames the title of note n with as t
+  * `updateContent(t: String, n: Note)`
+    * **effect** Replaces the content associated with `n` with `t`.  Also updates last\_modified to the current time.
 
 '// This import loads the `.env` file as environment variables
 import "jsr:@std/dotenv/load";
@@ -10,72 +44,78 @@ import { ID } from "@utils/types.ts";
 import { generate } from "jsr:@std/uuid/unstable-v7";
 
 async function initMongoClient() {
-  const DB_CONN = Deno.env.get("MONGODB_URL");
-  if (DB_CONN === undefined) {
-    throw new Error("Could not find environment variable: MONGODB_URL");
-  }
-  const client = new MongoClient(DB_CONN);
-  try {
-    await client.connect();
-  } catch (e) {
-    throw new Error("MongoDB connection failed: " + e);
-  }
-  return client;
+const DB\_CONN = Deno.env.get("MONGODB\_URL");
+if (DB\_CONN === undefined) {
+throw new Error("Could not find environment variable: MONGODB\_URL");
+}
+const client = new MongoClient(DB\_CONN);
+try {
+await client.connect();
+} catch (e) {
+throw new Error("MongoDB connection failed: " + e);
+}
+return client;
 }
 
 async function init() {
-  const client = await initMongoClient();
-  const DB_NAME = Deno.env.get("DB_NAME");
-  if (DB_NAME === undefined) {
-    throw new Error("Could not find environment variable: DB_NAME");
-  }
-  return [client, DB_NAME] as [MongoClient, string];
+const client = await initMongoClient();
+const DB\_NAME = Deno.env.get("DB\_NAME");
+if (DB\_NAME === undefined) {
+throw new Error("Could not find environment variable: DB\_NAME");
+}
+return \[client, DB\_NAME] as \[MongoClient, string];
 }
 
 async function dropAllCollections(db: Db): Promise<void> {
-  try {
-    // Get all collection names
-    const collections = await db.listCollections().toArray();
+try {
+// Get all collection names
+const collections = await db.listCollections().toArray();
 
-    // Drop each collection
-    for (const collection of collections) {
-      await db.collection(collection.name).drop();
-    }
-  } catch (error) {
-    console.error("Error dropping collections:", error);
-    throw error;
+```
+// Drop each collection
+for (const collection of collections) {
+  await db.collection(collection.name).drop();
+}
+```
+
+} catch (error) {
+console.error("Error dropping collections:", error);
+throw error;
+}
+}
+
+/\*\*
+
+* MongoDB database configured by .env
+* @returns {\[Db, MongoClient]} initialized database and client
+  \*/
+  export async function getDb() {
+  const \[client, DB\_NAME] = await init();
+  return \[client.db(DB\_NAME), client];
   }
-}
 
-/**
- * MongoDB database configured by .env
- * @returns {[Db, MongoClient]} initialized database and client
- */
-export async function getDb() {
-  const [client, DB_NAME] = await init();
-  return [client.db(DB_NAME), client];
-}
+/\*\*
 
-/**
- * Test database initialization
- * @returns {[Db, MongoClient]} initialized test database and client
- */
-export async function testDb() {
-  const [client, DB_NAME] = await init();
-  const test_DB_NAME = `test-${DB_NAME}`;
-  const test_Db = client.db(test_DB_NAME);
-  await dropAllCollections(test_Db);
-  return [test_Db, client] as [Db, MongoClient];
-}
+* Test database initialization
+* @returns {\[Db, MongoClient]} initialized test database and client
+  \*/
+  export async function testDb() {
+  const \[client, DB\_NAME] = await init();
+  const test\_DB\_NAME = `test-${DB_NAME}`;
+  const test\_Db = client.db(test\_DB\_NAME);
+  await dropAllCollections(test\_Db);
+  return \[test\_Db, client] as \[Db, MongoClient];
+  }
 
-/**
- * Creates a fresh ID.
- * @returns {ID} UUID v7 generic ID.
- */
-export function freshID() {
+/\*\*
+
+* Creates a fresh ID.
+* @returns {ID} UUID v7 generic ID.
+  \*/
+  export function freshID() {
   return generate() as ID;
-}
-'
+  }
+  '
 
 ```
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
@@ -386,10 +426,4 @@ Deno.test("Action: updateResponse successfully updates a response and enforces r
     await client.close();
   }
 });
-```
-
-# response:
-
-```typescript
-
 ```

@@ -1,3 +1,12 @@
+---
+timestamp: 'Wed Oct 15 2025 16:13:48 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251015_161348.ac09aef8.md]]'
+content_id: 649adee636a32606f286fe05ee7488c0701fe7a46b80bf01886bc6ad6d11312d
+---
+
+# file: src/concepts/Scriblink/folder.ts
+
+```typescript
 import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
@@ -102,7 +111,7 @@ export default class FolderConcept {
    * Helper function to check if targetId is a hierarchical descendant of ancestorId.
    * This prevents moving a folder into its own subfolder (which would create a cycle).
    */
-  async isDescendant(
+  private async isDescendant(
     targetId: Folder,
     ancestorId: Folder,
   ): Promise<boolean> {
@@ -386,3 +395,5 @@ export default class FolderConcept {
     }
   }
 }
+
+```

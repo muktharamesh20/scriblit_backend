@@ -125,7 +125,7 @@ export default class SummariesConcept {
       generatedSummary = (await this.llm.executeLLM(fullPrompt)).trim();
 
       // Validate the AI-generated summary against all invariants
-      this.validateSummary(generatedSummary, text, true);
+      this.validateSummary(generatedSummary, text);
     } catch (e: any) {
       console.error(
         `Error generating or validating AI summary for item ${item}:`,
@@ -160,21 +160,17 @@ export default class SummariesConcept {
   private validateSummary(
     summary: string,
     originalText: string,
-    checkContentSpecifics: boolean = true,
   ): void {
     // Invariant: summary contains no meta-language or AI disclaimers
     this.validateNoMetaLanguage(summary);
 
-    if (checkContentSpecifics) {
-      // Invariant: summary is at most 50% the length of the item's content or under 150 words
-      this.validateSummaryLength(summary, originalText, 0.5, 150);
+    // Invariant: summary is at most 50% the length of the item's content or under 150 words
+    this.validateSummaryLength(summary, originalText, 0.5, 150);
 
-      // Invariant: summary is a concise, relevant, and readable highlight of the item's content
-      this.validateContentRelevance(summary, originalText);
-    } else {
-      // For manual summaries where original text might not be available, we enforce the absolute word count.
-      this.validateSummaryLength(summary, originalText, 0, 150); // Set ratio to 0 to effectively skip it if originalText is empty.
-    }
+    // Invariant: summary is a concise, relevant, and readable highlight of the item's content
+    this.validateContentRelevance(summary, originalText);
+
+    this.validateSummaryLength(summary, originalText, 0, 150); // Set ratio to 0 to effectively skip it if originalText is empty.
   }
 
   /**

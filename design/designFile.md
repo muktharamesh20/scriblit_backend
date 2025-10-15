@@ -42,3 +42,13 @@ Gemini added password hashing and additional method to compare hashed vs input p
 # Interesting Moment 8
 ![implementing tagging](../context/design/brainstorming/questioning.md/20251015_100215.ba3aa5af.md)
 After reading through what the LLM implemented, I realized I didn't really put in the spec how addTag and removeTag worked, but the LLM could interpret it and even looks for edge cases which is pretty cool.  As an aside, it's also interesting how many comments the LLM is putting with my newer version of the prompt.  I think it's helping it get better results too.
+
+# Interesting Moment 9
+![need to test multiple at once](context/design/brainstorming/questioning.md/20251015_142604.b5571f66.md)
+Even thought the modules... actually nevermind
+
+Just as a note, I'm going to seperate my testing files by concept.  Then I'll have an integration test file.  I'll make partitions like 6.102 as well.
+
+# INteresting Moment 10
+![testing private methods](../../context/design/brainstorming/questioning.md/20251015_160947.85120102.md)
+This was really interesting.  When I tried to get the llm to test my class, it created a new "fakeFolder" class that extended the real class in order to get access to private methods.  I think it was really cool problem solving by the llm.  I think I might actually keep it just for the private methods, but have the LLM test the actual concept itself for the non-private methods.
