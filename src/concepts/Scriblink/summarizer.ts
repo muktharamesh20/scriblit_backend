@@ -4,91 +4,26 @@ import { Collection, Db } from "npm:mongodb";
 // export type ID = string;
 // export type Empty = Record<string, never>;
 import { Empty, ID } from "@utils/types.ts";
+import { Config, GeminiLLM } from "./gemini-llm.ts";
 
 // --- START: External LLM and Config Utilities (adapted from provided Summarizer example) ---
 // These would typically reside in separate files (e.g., `gemini-llm.ts`, `config.ts`)
 // but are included here for a self-contained solution as per the prompt's context.
 
-interface Config {
-  apiKey: string;
-}
-
-/**
- * A simplified mock/placeholder for the GeminiLLM.
- * In a real application, this would integrate with the actual Google Gemini API client library.
- * It simulates network delay and provides a basic response structure.
- */
-class GeminiLLM {
-  private apiKey: string;
-  private isMock: boolean;
-
-  constructor(config: Config) {
-    this.apiKey = config.apiKey;
-    this.isMock = this.apiKey === "MOCK_API_KEY";
-
-    if (this.isMock) {
-      console.warn(
-        "Using MOCK_API_KEY for GeminiLLM. No actual API calls will be made.",
-      );
-    } else if (!this.apiKey) {
-      console.error("Gemini API Key is missing and not using mock.");
-    }
-  }
-
-  async executeLLM(prompt: string): Promise<string> {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    // Simulate LLM deciding not to summarize based on a specific phrase in the prompt
-    if (prompt.includes("The summary could not be generated")) {
-      return "The summary could not be generated because the content was unclear or unrelated.";
-    }
-
-    if (this.isMock) {
-      // Basic mock response
-      const mockSummaryContent = prompt.length > 200
-        ? "Mock Summary: Key points discussed include main ideas, critical details, and overall conclusions. This helps students grasp the concept easily."
-        : "Mock Summary: Short idea overview.";
-      return mockSummaryContent;
-    }
-
-    // In a real-world scenario, the actual Gemini API call would be here:
-    // Example (requires actual Gemini SDK/fetch implementation):
-    // try {
-    //   const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + this.apiKey, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-    //   });
-    //   const data = await response.json();
-    //   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Failed to generate real summary.";
-    // } catch (error) {
-    //   console.error("Error calling Gemini API:", error);
-    //   return "Error generating summary with real API.";
-    // }
-
-    // For this exercise, if a real key exists, we'll still use a sophisticated mock
-    // to avoid unexpected API calls during automated testing or initial setup.
-    const realApiMockSummaryContent = prompt.length > 250
-      ? "Generated Summary: This section effectively covers several core topics. Emphasizes problem-solving techniques and common pitfalls. Concludes with practical applications."
-      : "Generated Summary: Concise overview of the primary subject matter.";
-    return realApiMockSummaryContent;
-  }
-}
-
 /**
  * Loads the API configuration, prioritizing environment variables.
  * Adapts `loadConfig` from the Summarizer example for a Deno environment.
  */
+
 function loadConfig(): Config {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (apiKey && apiKey.trim()) {
-    return { apiKey: apiKey.trim() };
+  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+  if (GEMINI_API_KEY && GEMINI_API_KEY.trim()) {
+    return { apiKey: GEMINI_API_KEY.trim() } as Config;
   }
   console.warn(
     "❌ Warning: GEMINI_API_KEY environment variable not set. LLM calls will use a MOCK_API_KEY.",
   );
-  return { apiKey: "MOCK_API_KEY" };
+  return { apiKey: "GEMINI_API_KEY_NOT_SET" };
 }
 // --- END: External LLM and Config Utilities ---
 
