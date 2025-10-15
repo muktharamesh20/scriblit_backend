@@ -92,16 +92,19 @@ Users can view, edit, rename, and delete their own notes.
         - a contained set of Folders
         - an elements set of `Item`
 - **Actions:** 
-    - `createRootFolder(): (f: Folder)`
+    - `createRootFolder(): (folder: Folder)`
         - **requires** no other folder has been created
         - **effect** creates a root folder to nest elements and folders inside of
-    - `insertFolder(f1: Folder, f2: Folder)`
+    - `insertFolder(f1: Folder, f2: Folder): (folder: Folder)`
         - **requires** f2 is not hierarchcly a descendent of f1.  In other words, f2 cannot be inside of f1 through any path of folders.
         - **effect** if f1 is already in a folder, remove it from that folder and move it into f2.  If f1 is a new folder, just add it to f2.
-    - `deleteFolder(f: Folder)`
+    - `deleteFolder(f: Folder): (folder: Folder)`
         - **effect** deletes f and everything contained inside of f from the folder hierarchy 
     - `insertItem(i: Item, f: Folder)`
         - **effect** if i is already in a folder, remove it from that folder and insert it into f.  Otherwise, simply insert it into f
+    - `deleteItem(i: Item)`
+        - **requires** the item exists 
+        - **effect** removes the item from whichever folder it is currently located in.
 
 
 **Request**

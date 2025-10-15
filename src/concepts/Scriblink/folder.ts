@@ -1,9 +1,9 @@
 import { Collection, Db } from "npm:mongodb";
-import { ID } from "@utils/types.ts";
+import { Empty, ID } from "@utils/types.ts";
 import { freshID } from "@utils/database.ts";
 
 // Collection prefix to ensure namespace separation
-const PREFIX = "Scriblink" + ".";
+const PREFIX = "Folder" + ".";
 
 // Generic types for the concept's external dependencies
 type User = ID;
@@ -202,7 +202,7 @@ export default class FolderConcept {
 
   async insertItem(
     { item, folder }: { item: Item; folder: Folder },
-  ): Promise<{ success: boolean } | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const targetFolder = await this.folders.findOne({ _id: folder });
     if (!targetFolder) {
       return { error: `Target folder with ID ${folder} not found.` };
@@ -216,7 +216,7 @@ export default class FolderConcept {
     if (oldParentFolder) {
       // If the item is already in the target folder, no action is needed, return success.
       if (oldParentFolder._id === folder) {
-        return { success: true };
+        return {};
       }
 
       // Remove the item from its old parent's 'elements' array.
@@ -234,7 +234,7 @@ export default class FolderConcept {
     );
 
     if (insertResult.modifiedCount === 1) {
-      return { success: true };
+      return {};
     } else {
       // This implies either the folder was not found (already checked) or $addToSet did nothing
       // because the item was already present (which would have been caught by oldParentFolder check
@@ -269,7 +269,7 @@ export default class FolderConcept {
    */
   async deleteFolder(
     f: Folder,
-  ): Promise<{ success: boolean } | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     const targetFolder = await this.folders.findOne({ _id: f });
     if (!targetFolder) {
       return { error: `Folder with ID ${f} not found.` };
@@ -291,7 +291,7 @@ export default class FolderConcept {
     });
 
     if (deleteResult.deletedCount > 0) {
-      return { success: true };
+      return {};
     } else {
       // This might happen if 'f' itself was the only one and it failed deletion,
       // or if it was a root folder with no children and the update for parent failed because no parent.
@@ -311,7 +311,7 @@ export default class FolderConcept {
    */
   async deleteItem(
     { item }: { item: Item },
-  ): Promise<{ success: boolean } | { error: string }> {
+  ): Promise<Empty | { error: string }> {
     // Find the folder that contains this item
     const containingFolder = await this.folders.findOne({ elements: item });
 
@@ -326,13 +326,62 @@ export default class FolderConcept {
     );
 
     if (deleteResult.modifiedCount === 1) {
-      return { success: true };
+      return {};
     } else {
       // This could happen if, for example, the item was removed by another process
       // between the findOne and updateOne calls, or if the update failed for another reason.
       return {
         error:
           `Failed to delete item ${item} from folder ${containingFolder._id}.`,
+      };
+    }
+  }
+
+  /**
+   * Query: Retrieves all children of a given folder ID.
+   * @param folderId The ID of the folder to retrieve.
+   * @returns `Folder[]` object if found, otherwise `null`.
+   */
+  async _getFolderChildren(
+    { folderId }: { folderId: Folder },
+  ): Promise<Folder[] | { error: string }> {
+    const folder = await this._getFolderDetails({ folderId });
+    if ("error" in folder) {
+      return { error: folder.error };
+    }
+    return folder.folders ?? [];
+  }
+
+  /**
+   * Query: Retrieves all items of a given folder ID.
+   * @param folderId The ID of the folder to retrieve.
+   * @returns `Item[]` object if found, otherwise `[]`.
+   */
+  async _getFolderItems(
+    { folderId }: { folderId: Folder },
+  ): Promise<Item[] | { error: string }> {
+    const folder = await this._getFolderDetails({ folderId });
+    if ("error" in folder) {
+      return { error: folder.error };
+    }
+    return folder.elements ?? [];
+  }
+
+  /**
+   * Retrieves all stored details for a given folder ID.
+   * @param folderId The ID of the folder to retrieve.
+   * @returns `FolderStructure` object if found, otherwise `null`.
+   */
+  async _getFolderDetails(
+    { folderId }: { folderId: Folder },
+  ): Promise<FolderStructure | { error: string }> {
+    try {
+      const folder = await this.folders.findOne({ _id: folderId });
+      return folder ?? { error: `Folder with ID ${folderId} not found.` };
+    } catch (e: any) {
+      console.error(`Error getting folder details for ${folderId}:`, e);
+      return {
+        error: `Error getting folder details for ${folderId}: ${e.message}`,
       };
     }
   }
