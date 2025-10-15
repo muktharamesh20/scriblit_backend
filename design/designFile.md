@@ -23,4 +23,4 @@ I realized a flaw in the folder design when ctx created one for me.  In its exam
 
 
 ![a prompt](/Users/muktharamesh/Documents/6104/scriblit_backend/context/design/brainstorming/questioning.md/20251014_013829.3e7a3953.md)
-This implemented the folder.  I finally got a decent (but not perfect) implementation.
+This implemented the folder.  I finally got a decent (but not perfect) implementation that the AI created.
