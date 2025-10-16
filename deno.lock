@@ -2,14 +2,18 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@*": "1.0.7",
+    "jsr:@std/assert@^1.0.15": "1.0.15",
     "jsr:@std/cli@*": "1.0.22",
     "jsr:@std/dotenv@*": "0.225.2",
     "jsr:@std/fs@*": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/internal@^1.0.5": "1.0.10",
     "jsr:@std/path@*": "1.0.8",
+    "jsr:@std/testing@*": "1.0.16",
     "jsr:@std/uuid@*": "1.0.7",
     "jsr:@std/yaml@*": "1.0.9",
     "npm:@google/genai@*": "1.21.0",
+    "npm:@google/generative-ai@~0.24.1": "0.24.1",
     "npm:@types/mdast@4": "4.0.4",
     "npm:mdast-util-from-markdown@2": "2.0.2",
     "npm:mdast-util-frontmatter@2": "2.0.1",
@@ -24,7 +28,13 @@
     "@std/assert@1.0.7": {
       "integrity": "64ce9fac879e0b9f3042a89b3c3f8ccfc9c984391af19e2087513a79d73e28c3",
       "dependencies": [
-        "jsr:@std/internal"
+        "jsr:@std/internal@^1.0.5"
+      ]
+    },
+    "@std/assert@1.0.15": {
+      "integrity": "d64018e951dbdfab9777335ecdb000c0b4e3df036984083be219ce5941e4703b",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.12"
       ]
     },
     "@std/cli@1.0.22": {
@@ -39,8 +49,17 @@
     "@std/internal@1.0.10": {
       "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
     },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/testing@1.0.16": {
+      "integrity": "a917ffdeb5924c9be436dc78bc32e511760e14d3a96e49c607fc5ecca86d0092",
+      "dependencies": [
+        "jsr:@std/assert@^1.0.15"
+      ]
     },
     "@std/uuid@1.0.7": {
       "integrity": "6885db5cd60794049d1661b5cf06b1e1ed65b2affd054ec8b06da7d2efd421ca"
@@ -56,6 +75,9 @@
         "google-auth-library",
         "ws"
       ]
+    },
+    "@google/generative-ai@0.24.1": {
+      "integrity": "sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q=="
     },
     "@mongodb-js/saslprep@1.1.9": {
       "integrity": "sha512-tVkljjeEaAhCqTzajSdgbQ6gE6f3oneVwa3iXR6csiEwXXOFsiC6Uh9iAjAhXPtqa/XMDHWjjeNH/77m/Yq2dw==",
@@ -625,6 +647,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@google/generative-ai@~0.24.1",
         "npm:mongo@0.1",
         "npm:mongodb@^6.20.0"
       ]

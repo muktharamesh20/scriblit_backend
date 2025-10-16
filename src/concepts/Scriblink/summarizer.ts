@@ -327,9 +327,12 @@ export default class SummariesConcept {
    */
   async getSummary(
     { item }: { item: Item },
-  ): Promise<SummaryDocument | null | { error: string }> {
+  ): Promise<SummaryDocument | { error: string }> {
     try {
       const summaryDoc = await this.summariesCollection.findOne({ _id: item });
+      if (!summaryDoc) {
+        return { error: `No summary found for item ${item}.` };
+      }
       return summaryDoc;
     } catch (e: any) {
       console.error(`Error getting summary for item ${item}:`, e);
