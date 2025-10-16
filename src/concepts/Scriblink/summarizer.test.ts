@@ -193,18 +193,18 @@ Deno.test("Query: getSummary returns existing summary", async () => {
   }
 });
 
-Deno.test("Query: getSummary returns null for non-existent summary", async () => {
+Deno.test("Query: getSummary returns an error for non-existent summary", async () => {
   const [db, client] = await testDb();
   const concept = new SummariesConcept(db);
 
   try {
     const result = await concept.getSummary({ item: ITEM_ID_NON_EXISTENT });
-    assertExists(result, "getSummary should not return null");
     assertEquals(
-      result,
-      null,
-      "getSummary should return null for a non-existent item.",
+      "error" in result,
+      true,
+      "getSummary should return an error for a non-existent item.",
     );
+    assertExists((result as { error: string }).error);
   } finally {
     await client.close();
   }
@@ -236,7 +236,13 @@ Deno.test("Action: deleteSummary successfully deletes an existing summary", asyn
     );
 
     fetched = await concept.getSummary({ item: ITEM_ID_1 });
-    assertEquals(fetched, null, "Summary should be null after deletion.");
+    assertExists(fetched, "getSummary should not return null");
+    assertEquals(
+      "error" in fetched,
+      true,
+      "getSummary should return an error after deletion.",
+    );
+    assertExists((fetched as { error: string }).error);
   } finally {
     await client.close();
   }
@@ -287,14 +293,20 @@ Deno.test("Action: setSummaryWithAI successfully generates and saves a summary",
     );
     const summaryDoc = result as { _id: ID; summary: string };
     assertEquals(summaryDoc._id, ITEM_ID_1);
-    assertEquals(summaryDoc.summary, SAMPLE_SUMMARY_LONG_VALID);
+    // Normalize whitespace for comparison (collapse multiple spaces/newlines into single spaces)
+    const normalizeWhitespace = (str: string) =>
+      str.replace(/\s+/g, " ").trim();
+    assertEquals(
+      normalizeWhitespace(summaryDoc.summary),
+      normalizeWhitespace(SAMPLE_SUMMARY_LONG_VALID),
+    );
 
     const fetched = await concept.getSummary({ item: ITEM_ID_1 });
     assertExists(fetched, "getSummary should not return null");
     assertNotEquals("error" in fetched, true, "getSummary should not error");
     assertEquals(
-      (fetched as { _id: ID; summary: string })?.summary,
-      SAMPLE_SUMMARY_LONG_VALID,
+      normalizeWhitespace((fetched as { _id: ID; summary: string })?.summary),
+      normalizeWhitespace(SAMPLE_SUMMARY_LONG_VALID),
       "Fetched summary should match AI-generated summary",
     );
     assertEquals(

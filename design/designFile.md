@@ -58,12 +58,5 @@ This was really interesting.  When I tried to get the llm to test my class, it c
 I asked context to make a test file for me, and it was cool because it used something called stud.  stud basically allows me to just test the validation logic and error handling, basically stopping actual gemini api calls.  This was a cool idea because otherwise frequent testing could be expensive, as well as really slow.  If gemini's api was down, it would also cause failure.  This way, the unit tests test my actual code, not the gemini.  However, I'll still have tests with the gemini tests to make sure the prompting is good.
 
 
-Running integration test with gemini-llm:
-# Set your API key
-export GEMINI_API_KEY=your_actual_api_key_here
-
-# Run integration tests
-./run-integration-tests.sh
-
-# Or run directly
-deno test --allow-net --allow-env src/concepts/Scriblink/summarizer.integration.test.ts
+Running all tests
+deno test --allow-read --allow-net --allow-env --allow-sys             
