@@ -918,7 +918,7 @@ Deno.test("Interesting Scenario 4: AI summary validation and edge cases", async 
       "executeLLM",
       () =>
         Promise.resolve(
-          "• Valid AI summary\n• Properly formatted\n• Good content",
+          "• Quantum entanglement links particles across distances\n• Einstein called it 'spooky action at a distance'\n• Enables quantum computing and cryptography",
         ),
     );
 

@@ -22,10 +22,10 @@ Principle: After setting a username and password for a user, the user can authen
 🎉 OPERATIONAL PRINCIPLE COMPLETE
 ============================================================
 ----- output end -----
-Principle: After setting a username and password for a user, the user can authenticate with that username and password and be treated each time as the same user. ... ok (619ms)
-Action: register - requires the provided username must not already exist in the system. ... ok (533ms)
-Action: authenticate - ensures multiple users can be registered and authenticated independently ... ok (587ms)
-Action: authenticate - requires the username and password combination to exactly match ... ok (578ms)
+Principle: After setting a username and password for a user, the user can authenticate with that username and password and be treated each time as the same user. ... ok (664ms)
+Action: register - requires the provided username must not already exist in the system. ... ok (632ms)
+Action: authenticate - ensures multiple users can be registered and authenticated independently ... ok (656ms)
+Action: authenticate - requires the username and password combination to exactly match ... ok (615ms)
 Interesting Scenario 1: User registration and authentication lifecycle ...
 ------- output -------
 
@@ -41,7 +41,7 @@ Interesting Scenario 1: User registration and authentication lifecycle ...
 ✓ Second authentication successful
 === Scenario 1 Complete ===
 ----- output end -----
-Interesting Scenario 1: User registration and authentication lifecycle ... ok (607ms)
+Interesting Scenario 1: User registration and authentication lifecycle ... ok (643ms)
 Interesting Scenario 2: Multiple user registration and isolation ...
 ------- output -------
 
@@ -61,7 +61,7 @@ Interesting Scenario 2: Multiple user registration and isolation ...
 ✓ Bob with Alice's password correctly rejected
 === Scenario 2 Complete ===
 ----- output end -----
-Interesting Scenario 2: Multiple user registration and isolation ... ok (576ms)
+Interesting Scenario 2: Multiple user registration and isolation ... ok (658ms)
 Interesting Scenario 3: Duplicate username handling and error recovery ...
 ------- output -------
 
@@ -79,15 +79,25 @@ Interesting Scenario 3: Duplicate username handling and error recovery ...
 ✓ Bob registered successfully
 === Scenario 3 Complete ===
 ----- output end -----
-Interesting Scenario 3: Duplicate username handling and error recovery ... ok (635ms)
+Interesting Scenario 3: Duplicate username handling and error recovery ... ok (637ms)
 Interesting Scenario 4: Password validation and edge cases ...
 ------- output -------
 
 🔍 SCENARIO 4: Password Validation and Edge Cases
 ==================================================
 1. Testing empty password...
+✓ Empty password correctly rejected
+2. Testing very long password...
+✓ Long password accepted
+3. Testing special characters in password...
+✓ Special character password accepted
+4. Testing unicode characters in password...
+✓ Unicode password accepted
+5. Testing authentication with special passwords...
+✓ All special password authentications succeeded
+=== Scenario 4 Complete ===
 ----- output end -----
-Interesting Scenario 4: Password validation and edge cases ... FAILED (506ms)
+Interesting Scenario 4: Password validation and edge cases ... ok (649ms)
 Interesting Scenario 5: Rapid registration and authentication ...
 ------- output -------
 
@@ -107,25 +117,4 @@ Interesting Scenario 5: Rapid registration and authentication ...
 ----- output end -----
 Interesting Scenario 5: Rapid registration and authentication ... ok (1s)
 
- ERRORS 
-
-Interesting Scenario 4: Password validation and edge cases => ./src/concepts/Scriblink/passwordAuth.test.ts:567:6
-error: AssertionError: Values are not equal: Empty password should be rejected
-
-
-    [Diff] Actual / Expected
-
-
--   false
-+   true
-
-  throw new AssertionError(message);
-        ^
-    at assertEquals (https://jsr.io/@std/assert/1.0.15/equals.ts:65:9)
-    at file:///Users/muktharamesh/Documents/6104/scriblit_backend/src/concepts/Scriblink/passwordAuth.test.ts:581:5
-
- FAILURES 
-
-Interesting Scenario 4: Password validation and edge cases => ./src/concepts/Scriblink/passwordAuth.test.ts:567:6
-
-FAILED | 8 passed | 1 failed (5s)
+ok | 9 passed | 0 failed (6s)

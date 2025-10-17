@@ -6,7 +6,7 @@
     - `password` string  
 - **Actions:**
     - `register(username: String, password: String): (user: User)`
-        - **requires:** the username does not exist
+        - **requires:** the username does not exist, password is not whitespace or empty
         - **effect** create a new user with this username and password and returns the user  
     - `authenticate(user: username, password: String): (user: User)`
         - **requires:** the username and password combination exists in the set of users

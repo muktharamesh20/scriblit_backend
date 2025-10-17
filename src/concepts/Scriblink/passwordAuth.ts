@@ -67,7 +67,7 @@ export default class PasswordAuthConcept {
   /**
    * Action: Registers a new user in the system.
    * @param username The desired unique username for the new user.
-   * @param password The plaintext password for the new user. This will be hashed before storage.
+   * @param password The plaintext password for the new user. This will be hashed before storage.  The password must not be empty or whitespace.
    * @requires The provided username must not already exist in the system.
    * @effects A new user document is created in the database with a unique ID,
    *          the given username, and a securely hashed version of the password.
@@ -80,6 +80,10 @@ export default class PasswordAuthConcept {
     const existingUser = await this.users.findOne({ username });
     if (existingUser) {
       return { error: `Username '${username}' already exists.` };
+    }
+
+    if (password.trim() === "") {
+      return { error: "Password cannot be empty or whitespace." };
     }
 
     const userId = freshID() as User; // Generate a new unique ID for the user
