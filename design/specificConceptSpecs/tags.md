@@ -8,7 +8,7 @@
         - set of `item` 
 - **Actions:**
     - `addTag(label: String, item: Item): (t: Tag)`
-        - **requires** there does not already exist a tag associated with that label and item
+        - **requires** there does not already exist a tag associated with that label and item, the label also must not be empty or only whitespaace
         - **effect** creates a tag with that label and item
     - `removeTagFromItem(t: Tag)`
         - **requires** t is in the set of tags

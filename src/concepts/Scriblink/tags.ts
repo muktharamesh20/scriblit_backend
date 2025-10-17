@@ -47,7 +47,7 @@ export default class TagConcept {
    *
    * @requires There must not already exist an association between this `user`, `label`, and `item`.
    *           In other words, the `item` should not already be present in the `items` list of the
-   *           tag identified by `user` and `label`.
+   *           tag identified by `user` and `label`.  Tag also should not be empty or whitespace.
    *
    * @effects If the tag (for the given `user` and `label`) doesn't exist, it's created and the `item` is added.
    *          If the tag exists but the `item` is not associated, the `item` is added to its `items` list.
@@ -60,6 +60,12 @@ export default class TagConcept {
   ): Promise<{ tag: Tag } | { error: string }> {
     // First, try to find an existing tag for this user with this label.
     const existingTag = await this.tags.findOne({ owner: user, label });
+
+    if (label.trim() === "") {
+      return {
+        error: "Tag cannot be empty or whitespace.",
+      };
+    }
 
     if (existingTag) {
       // Check the 'requires' clause: "there does not already exist a tag associated with that label and item".
