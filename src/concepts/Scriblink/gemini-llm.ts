@@ -1,10 +1,3 @@
-/**
- * LLM Integration for DayPlanner
- *
- * Handles the requestAssignmentsFromLLM functionality using Google's Gemini API.
- * The LLM prompt is hardwired with user preferences and doesn't take external hints.
- */
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /**
