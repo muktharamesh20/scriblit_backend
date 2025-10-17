@@ -14,15 +14,23 @@ import NotesConcept from "./notes.ts"; // Import the concept to be tested
 const userAlice = "user:Alice" as ID;
 const userBob = "user:Bob" as ID;
 
+// ============================================================================
+// --- OPERATIONAL PRINCIPLE ---
+// ============================================================================
+
 Deno.test("Principle: User can create, view, rename, edit, and delete their own note", async (t) => {
   const [db, client] = await testDb();
   const notesConcept = new NotesConcept(db);
 
   try {
+    console.log("\n📝 OPERATIONAL PRINCIPLE: Note Management Workflow");
+    console.log("=".repeat(60));
+
     let noteId: ID; // To store the ID of the created note
     let initialCreationTime: Date;
 
     await t.step("1. User creates a new note with a title", async () => {
+      console.log("\n📝 Step 1: Creating new note with title");
       const createResult = await notesConcept.createNote({
         title: "My First Note",
         user: userAlice,
@@ -52,9 +60,11 @@ Deno.test("Principle: User can create, view, rename, edit, and delete their own 
         (noteDetails as any).last_modified.getTime(),
         initialCreationTime.getTime(),
       );
+      console.log("   ✅ Note created successfully: 'My First Note'");
     });
 
     await t.step("2. User can view their own notes", async () => {
+      console.log("\n👀 Step 2: Viewing user's notes");
       const userNotes = await notesConcept.getNotesByUser({
         ownerId: userAlice,
       });
@@ -69,9 +79,11 @@ Deno.test("Principle: User can create, view, rename, edit, and delete their own 
         "There should be 1 note for user Alice.",
       );
       assertEquals((userNotes as any[])[0]._id, noteId);
+      console.log("   ✅ User notes retrieved: 1 note found");
     });
 
     await t.step("3. User can rename their note", async () => {
+      console.log("\n✏️  Step 3: Renaming note");
       const renameResult = await notesConcept.setTitle({
         noteId,
         user: userAlice,
@@ -98,9 +110,11 @@ Deno.test("Principle: User can create, view, rename, edit, and delete their own 
         (noteDetails as any).last_modified.getTime(),
         initialCreationTime.getTime(),
       );
+      console.log("   ✅ Note renamed successfully: 'My Renamed Note'");
     });
 
     await t.step("4. User can edit the content of their note", async () => {
+      console.log("\n📝 Step 4: Editing note content");
       const newContent = "This is the new content of my note.";
       const updateContentResult = await notesConcept.updateContent({
         noteId,
@@ -134,9 +148,11 @@ Deno.test("Principle: User can create, view, rename, edit, and delete their own 
         initialCreationTime.getTime(),
         "date_created should remain the same.",
       );
+      console.log("   ✅ Note content updated successfully");
     });
 
     await t.step("5. User can delete their note", async () => {
+      console.log("\n🗑️  Step 5: Deleting note");
       const deleteResult = await notesConcept.deleteNote({
         noteId,
         user: userAlice,
@@ -160,11 +176,19 @@ Deno.test("Principle: User can create, view, rename, edit, and delete their own 
         (noteDetailsAfterDelete as any).error,
         `Note with ID ${noteId} not found.`,
       );
+      console.log("   ✅ Note deleted successfully");
     });
+
+    console.log("\n🎉 OPERATIONAL PRINCIPLE COMPLETE");
+    console.log("=".repeat(60));
   } finally {
     await client.close();
   }
 });
+
+// ============================================================================
+// --- GENERAL CONCEPT METHOD TESTING ---
+// ============================================================================
 
 Deno.test("Action: createNote - default title and initial state", async () => {
   const [db, client] = await testDb();
@@ -408,11 +432,10 @@ Deno.test("Action: updateContent - requires existing note and ownership", async 
       "Updating with the same content should be a no-op (no error, but last_modified might still update for robustness)",
       async () => {
         // First, create a note with some content
-        const contentNoteId =
-          (await notesConcept.createNote({
-            title: "Same Content Test",
-            user: userAlice,
-          })) as any;
+        const contentNoteId = (await notesConcept.createNote({
+          title: "Same Content Test",
+          user: userAlice,
+        })) as any;
         const initialContent = "Hello World";
         await notesConcept.updateContent({
           noteId: contentNoteId.note,
@@ -595,6 +618,519 @@ Deno.test("Query: getNotesByUser - retrieves only owner's notes", async (t) => {
         );
       },
     );
+  } finally {
+    await client.close();
+  }
+});
+
+// ============================================================================
+// --- INTERESTING SCENARIOS ---
+// ============================================================================
+
+Deno.test("Interesting Scenario 1: Note lifecycle with complex editing patterns", async () => {
+  const [db, client] = await testDb();
+  const notesConcept = new NotesConcept(db);
+
+  try {
+    console.log("\n📝 SCENARIO 1: Complex Note Editing Patterns");
+    console.log("=".repeat(50));
+
+    let noteId: ID;
+
+    // 1. Create initial note
+    console.log("\n📝 Step 1: Creating initial note");
+    const createResult = await notesConcept.createNote({
+      title: "Complex Note",
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in createResult,
+      true,
+      "Note creation should succeed",
+    );
+    ({ note: noteId } = createResult as { note: ID });
+    console.log("   ✅ Initial note created: 'Complex Note'");
+
+    // 2. Add content gradually
+    console.log("\n📝 Step 2: Adding content gradually");
+    const edit1Result = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: "This is the first paragraph of content.",
+    });
+    assertNotEquals("error" in edit1Result, true, "First edit should succeed");
+    console.log("   ✅ First content added");
+
+    const edit2Result = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent:
+        "This is the first paragraph of content.\n\nThis is the second paragraph with more details.",
+    });
+    assertNotEquals("error" in edit2Result, true, "Second edit should succeed");
+    console.log("   ✅ Content expanded with second paragraph");
+
+    // 3. Rename note
+    console.log("\n✏️  Step 3: Renaming note");
+    const renameResult = await notesConcept.setTitle({
+      noteId,
+      user: userAlice,
+      newTitle: "Complex Note - Updated",
+    });
+    assertNotEquals(
+      "error" in renameResult,
+      true,
+      "Setting title should succeed",
+    );
+    console.log("   ✅ Note renamed: 'Complex Note - Updated'");
+
+    // 4. Verify final state
+    console.log("\n🔍 Step 4: Verifying final state");
+    const finalDetails = await notesConcept.getNoteDetails({
+      noteId,
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in finalDetails,
+      true,
+      "Final retrieval should succeed",
+    );
+    assertEquals((finalDetails as any).title, "Complex Note - Updated");
+    assertEquals(
+      (finalDetails as any).content,
+      "This is the first paragraph of content.\n\nThis is the second paragraph with more details.",
+    );
+    console.log("   ✅ Final state verified");
+    console.log("   📊 Final note: 'Complex Note - Updated' with 2 paragraphs");
+
+    console.log("\n🎉 SCENARIO 1 COMPLETE");
+    console.log("=".repeat(50));
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Interesting Scenario 2: Multi-user note isolation and permissions", async () => {
+  const [db, client] = await testDb();
+  const notesConcept = new NotesConcept(db);
+
+  try {
+    console.log("\n👥 SCENARIO 2: Multi-User Note Isolation");
+    console.log("=".repeat(50));
+
+    let aliceNoteId: ID;
+    let bobNoteId: ID;
+
+    // 1. Alice creates a note
+    console.log("1. Alice creating a note...");
+    const aliceCreateResult = await notesConcept.createNote({
+      title: "Alice's Private Note",
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in aliceCreateResult,
+      true,
+      "Alice's note creation should succeed",
+    );
+    ({ note: aliceNoteId } = aliceCreateResult as { note: ID });
+    console.log("✓ Alice's note created");
+
+    // 2. Bob creates a separate note
+    console.log("2. Bob creating a separate note...");
+    const bobCreateResult = await notesConcept.createNote({
+      title: "Bob's Private Note",
+      user: userBob,
+    });
+    assertNotEquals(
+      "error" in bobCreateResult,
+      true,
+      "Bob's note creation should succeed",
+    );
+    ({ note: bobNoteId } = bobCreateResult as { note: ID });
+    console.log("✓ Bob's note created");
+
+    // 3. Bob tries to access Alice's note (should fail)
+    console.log("3. Testing cross-user access restrictions...");
+    const crossAccessResult = await notesConcept.getNoteDetails({
+      noteId: aliceNoteId,
+      user: userBob,
+    });
+    assertEquals(
+      "error" in crossAccessResult,
+      true,
+      "Bob should not access Alice's note",
+    );
+    console.log("✓ Cross-user access correctly blocked");
+
+    // 4. Bob tries to edit Alice's note (should fail)
+    console.log("4. Testing cross-user edit restrictions...");
+    const crossEditResult = await notesConcept.updateContent({
+      noteId: aliceNoteId,
+      user: userBob,
+      newContent: "Hacked content",
+    });
+    assertEquals(
+      "error" in crossEditResult,
+      true,
+      "Bob should not edit Alice's note",
+    );
+    console.log("✓ Cross-user edit correctly blocked");
+
+    // 5. Both users work independently
+    console.log("5. Verifying independent operations...");
+    const aliceEditResult = await notesConcept.updateContent({
+      noteId: aliceNoteId,
+      user: userAlice,
+      newContent: "Alice's updated content",
+    });
+    assertNotEquals(
+      "error" in aliceEditResult,
+      true,
+      "Alice should edit her own note",
+    );
+
+    const bobEditResult = await notesConcept.updateContent({
+      noteId: bobNoteId,
+      user: userBob,
+      newContent: "Bob's updated content",
+    });
+    assertNotEquals(
+      "error" in bobEditResult,
+      true,
+      "Bob should edit his own note",
+    );
+    console.log("✓ Both users can work independently");
+
+    console.log("\n🎉 SCENARIO 2 COMPLETE");
+    console.log("=".repeat(50));
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Interesting Scenario 3: Note deletion and recovery patterns", async () => {
+  const [db, client] = await testDb();
+  const notesConcept = new NotesConcept(db);
+
+  try {
+    console.log("\n🗑️  SCENARIO 3: Note Deletion and Recovery");
+    console.log("=".repeat(50));
+
+    let noteId: ID;
+
+    // 1. Create and populate note
+    console.log("1. Creating and populating note...");
+    const createResult = await notesConcept.createNote({
+      title: "Temporary Note",
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in createResult,
+      true,
+      "Note creation should succeed",
+    );
+    ({ note: noteId } = createResult as { note: ID });
+
+    const editResult = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: "This is important content that will be deleted.",
+    });
+    assertNotEquals(
+      "error" in editResult,
+      true,
+      "Content addition should succeed",
+    );
+    console.log("✓ Note created and populated");
+
+    // 2. Delete the note
+    console.log("2. Deleting the note...");
+    const deleteResult = await notesConcept.deleteNote({
+      noteId,
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in deleteResult,
+      true,
+      "Note deletion should succeed",
+    );
+    console.log("✓ Note deleted");
+
+    // 3. Try to access deleted note (should fail)
+    console.log("3. Testing access to deleted note...");
+    const accessDeletedResult = await notesConcept.getNoteDetails({
+      noteId,
+      user: userAlice,
+    });
+    assertEquals(
+      "error" in accessDeletedResult,
+      true,
+      "Access to deleted note should fail",
+    );
+    console.log("✓ Deleted note access correctly blocked");
+
+    // 4. Try to edit deleted note (should fail)
+    console.log("4. Testing edit of deleted note...");
+    const editDeletedResult = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: "Attempted edit",
+    });
+    assertEquals(
+      "error" in editDeletedResult,
+      true,
+      "Edit of deleted note should fail",
+    );
+    console.log("✓ Deleted note edit correctly blocked");
+
+    // 5. Create new note with same title
+    console.log("5. Creating new note with same title...");
+    const recreateResult = await notesConcept.createNote({
+      title: "Temporary Note", // Same title
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in recreateResult,
+      true,
+      "Recreation with same title should succeed",
+    );
+    console.log("✓ New note created with same title");
+
+    console.log("\n🎉 SCENARIO 3 COMPLETE");
+    console.log("=".repeat(50));
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Interesting Scenario 4: Rapid note operations and concurrency", async () => {
+  const [db, client] = await testDb();
+  const notesConcept = new NotesConcept(db);
+
+  try {
+    console.log("\n⚡ SCENARIO 4: Rapid Note Operations");
+    console.log("=".repeat(50));
+
+    const noteIds: ID[] = [];
+
+    // 1. Rapid note creation
+    console.log("1. Creating multiple notes rapidly...");
+    const createPromises = [];
+    for (let i = 0; i < 5; i++) {
+      createPromises.push(
+        notesConcept.createNote({
+          title: `Rapid Note ${i}`,
+          user: userAlice,
+        }),
+      );
+    }
+
+    const createResults = await Promise.all(createPromises);
+    for (const result of createResults) {
+      assertNotEquals(
+        "error" in result,
+        true,
+        "All rapid note creations should succeed",
+      );
+      noteIds.push((result as { note: ID }).note);
+    }
+    console.log("✓ All rapid note creations succeeded");
+
+    // 2. Rapid content editing
+    console.log("2. Editing notes rapidly...");
+    const editPromises = [];
+    for (let i = 0; i < noteIds.length; i++) {
+      editPromises.push(
+        notesConcept.updateContent({
+          noteId: noteIds[i],
+          user: userAlice,
+          newContent: `Content for rapid note ${i}
+This is line 2
+This is line 3`,
+        }),
+      );
+    }
+
+    const editResults = await Promise.all(editPromises);
+    for (const result of editResults) {
+      assertNotEquals(
+        "error" in result,
+        true,
+        "All rapid edits should succeed",
+      );
+    }
+    console.log("✓ All rapid edits succeeded");
+
+    // 3. Rapid renaming
+    console.log("3. Renaming notes rapidly...");
+    const renamePromises = [];
+    for (let i = 0; i < noteIds.length; i++) {
+      renamePromises.push(
+        notesConcept.setTitle({
+          noteId: noteIds[i],
+          user: userAlice,
+          newTitle: `Updated Rapid Note ${i}`,
+        }),
+      );
+    }
+
+    const renameResults = await Promise.all(renamePromises);
+    for (const result of renameResults) {
+      assertNotEquals(
+        "error" in result,
+        true,
+        "All rapid renames should succeed",
+      );
+    }
+    console.log("✓ All rapid renames succeeded");
+
+    // 4. Verify all notes
+    console.log("4. Verifying all notes...");
+    for (let i = 0; i < noteIds.length; i++) {
+      const details = await notesConcept.getNoteDetails({
+        noteId: noteIds[i],
+        user: userAlice,
+      });
+      assertNotEquals(
+        "error" in details,
+        true,
+        `Note ${i} should be retrievable`,
+      );
+      assertEquals((details as any).title, `Updated Rapid Note ${i}`);
+      assertEquals(
+        (details as any).content,
+        `Content for rapid note ${i}
+This is line 2
+This is line 3`,
+      );
+    }
+    console.log("✓ All notes verified");
+
+    console.log("\n🎉 SCENARIO 4 COMPLETE");
+    console.log("=".repeat(50));
+  } finally {
+    await client.close();
+  }
+});
+
+Deno.test("Interesting Scenario 5: Note content edge cases and validation", async () => {
+  const [db, client] = await testDb();
+  const notesConcept = new NotesConcept(db);
+
+  try {
+    console.log(
+      "=== Interesting Scenario 5: Content Edge Cases and Validation ===",
+    );
+
+    let noteId: ID;
+
+    // 1. Create note with empty content
+    console.log("1. Creating note with empty content...");
+    const createResult = await notesConcept.createNote({
+      title: "Edge Case Note",
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in createResult,
+      true,
+      "Empty content note creation should succeed",
+    );
+    ({ note: noteId } = createResult as { note: ID });
+    console.log("✓ Empty content note created");
+
+    // 2. Test very long content
+    console.log("2. Testing very long content...");
+    const longContent = "A".repeat(10000); // 10,000 character content
+    const longEditResult = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: longContent,
+    });
+    assertNotEquals(
+      "error" in longEditResult,
+      true,
+      "Long content should be accepted",
+    );
+    console.log("✓ Long content accepted");
+
+    // 3. Test special characters
+    console.log("3. Testing special characters...");
+    const specialContent =
+      "Special chars: !@#$%^&*()_+-=[]{}|;:,.<>?/~`\nUnicode: 你好世界 🌍\nMath: ∑∞∫∂∇";
+    const specialEditResult = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: specialContent,
+    });
+    assertNotEquals(
+      "error" in specialEditResult,
+      true,
+      "Special characters should be accepted",
+    );
+    console.log("✓ Special characters accepted");
+
+    // 4. Test multiline content
+    console.log("4. Testing multiline content...");
+    const multilineContent =
+      "Line 1\n\nLine 2\n\n\nLine 3\n\tIndented line\n  \n  \n  \nFinal line";
+    const multilineEditResult = await notesConcept.updateContent({
+      noteId,
+      user: userAlice,
+      newContent: multilineContent,
+    });
+    assertNotEquals(
+      "error" in multilineEditResult,
+      true,
+      "Multiline content should be accepted",
+    );
+    console.log("✓ Multiline content accepted");
+
+    // 5. Test title edge cases
+    console.log("5. Testing title edge cases...");
+    const longTitleResult = await notesConcept.setTitle({
+      noteId,
+      user: userAlice,
+      newTitle: "A".repeat(200), // Very long title
+    });
+    assertNotEquals(
+      "error" in longTitleResult,
+      true,
+      "Long title should be accepted",
+    );
+    console.log("✓ Long title accepted");
+
+    const specialTitleResult = await notesConcept.setTitle({
+      noteId,
+      user: userAlice,
+      newTitle: "Special Title: !@#$%^&*()_+-=[]{}|;:,.<>?/~` 你好世界 🌍",
+    });
+    assertNotEquals(
+      "error" in specialTitleResult,
+      true,
+      "Special character title should be accepted",
+    );
+    console.log("✓ Special character title accepted");
+
+    // 6. Verify final state
+    console.log("6. Verifying final state...");
+    const finalDetails = await notesConcept.getNoteDetails({
+      noteId,
+      user: userAlice,
+    });
+    assertNotEquals(
+      "error" in finalDetails,
+      true,
+      "Final retrieval should succeed",
+    );
+    assertEquals((finalDetails as any).content, multilineContent);
+    assertEquals(
+      (finalDetails as any).title,
+      "Special Title: !@#$%^&*()_+-=[]{}|;:,.<>?/~` 你好世界 🌍",
+    );
+    console.log("✓ Final state verified");
+
+    console.log("\n🎉 SCENARIO 5 COMPLETE");
+    console.log("=".repeat(50));
   } finally {
     await client.close();
   }

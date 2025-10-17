@@ -269,7 +269,7 @@ export default class FolderConcept {
    */
   async deleteFolder(
     f: Folder,
-  ): Promise<Empty | { error: string }> {
+  ): Promise<Item[] | { error: string }> {
     const targetFolder = await this.folders.findOne({ _id: f });
     if (!targetFolder) {
       return { error: `Folder with ID ${f} not found.` };
@@ -291,16 +291,9 @@ export default class FolderConcept {
     });
 
     if (deleteResult.deletedCount > 0) {
-      return {};
-    } else {
-      // This might happen if 'f' itself was the only one and it failed deletion,
-      // or if it was a root folder with no children and the update for parent failed because no parent.
-      // However, if collectDescendants found it, it should be deleted.
-      return {
-        error:
-          `Failed to delete folder ${f} or its contents. No documents were deleted.`,
-      };
+      return Array.from(folderIdsToDelete).map((id) => id as Item);
     }
+    return { error: `Failed to delete folder ${f} or its contents.` };
   }
 
   /**
