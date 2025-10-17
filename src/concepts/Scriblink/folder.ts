@@ -17,8 +17,8 @@ export type Folder = ID;
  */
 export interface FolderStructure {
   _id: Folder;
-  owner: User;
   title: string;
+  owner: User;
   folders: Folder[];
   elements: Item[];
 }
@@ -29,11 +29,9 @@ export interface FolderStructure {
  */
 export default class FolderConcept {
   folders: Collection<FolderStructure>;
-  elements: Collection<Item>;
 
   constructor(private readonly db: Db) {
     this.folders = this.db.collection(PREFIX + "folders");
-    this.elements = this.db.collection(PREFIX + "elements");
   }
 
   /**
@@ -248,6 +246,12 @@ export default class FolderConcept {
     }
   }
 
+  /**
+   * Helper function to collect all descendants of a given folder.
+   * @param f The ID of the folder to collect descendants from.
+   * @param folderIdsToDelete The set of folder IDs to collect descendants into.
+   * @effects Collects all descendants of the given folder and adds them to the set.
+   */
   async collectDescendants(
     f: Folder,
     folderIdsToDelete: Set<Folder>,
