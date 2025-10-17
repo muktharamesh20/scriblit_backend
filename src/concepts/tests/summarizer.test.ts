@@ -8,8 +8,8 @@ import {
 import { stub } from "jsr:@std/testing/mock";
 import { freshID, testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
-import SummariesConcept from "./summarizer.ts";
-import { GeminiLLM } from "./gemini-llm.ts"; // Required to mock its method
+import SummariesConcept from "../Scriblink/summarizer.ts";
+import { GeminiLLM } from "../Scriblink/gemini-llm.ts"; // Required to mock its method
 
 // Test data
 const ITEM_ID_1 = freshID();

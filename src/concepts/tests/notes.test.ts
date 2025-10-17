@@ -8,7 +8,7 @@ import {
 } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts"; // Assuming @utils/database.ts contains testDb
 import { ID } from "@utils/types.ts"; // Assuming @utils/types.ts contains ID
-import NotesConcept from "./notes.ts"; // Import the concept to be tested
+import NotesConcept from "../Scriblink/notes.ts"; // Import the concept to be tested
 
 // Define some test User IDs
 const userAlice = "user:Alice" as ID;
