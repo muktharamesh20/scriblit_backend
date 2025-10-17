@@ -1,5 +1,3 @@
-// src/concepts/Scriblink/notes.test.ts
-
 import {
   assertEquals,
   assertExists,

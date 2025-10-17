@@ -3,12 +3,13 @@
 - **Principle** Each user can create and manage their own notes.
 A note belongs to exactly one user and contains a title and body text.
 Users can view, edit, rename, and delete their own notes.
-- **State** Set of Notes with
-    - title String
-    - content String
-    - owner User
-    - date_created Date
-    - last_modified Date
+- **State** 
+    - Set of Notes with
+        - title String
+        - content String
+        - owner User
+        - date_created Date
+        - last_modified Date
 
     -invariants
         - each note has exactly one owner

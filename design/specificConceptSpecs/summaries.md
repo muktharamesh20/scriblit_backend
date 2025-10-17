@@ -21,3 +21,6 @@
     - setSummaryWithAI(text: String, item: Item): (s: Summary)
         - requires text is nonempty
         - effect creates a summary of `text` with an LLM and associates it with the item
+    - deleteSummary(item: Item): (i: Item)
+        - requires item has a summary ssociated with it
+        - effect deletes the summary associated with the item

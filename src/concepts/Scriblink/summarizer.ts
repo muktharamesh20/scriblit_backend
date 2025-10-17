@@ -342,7 +342,6 @@ export default class SummariesConcept {
 
   /**
    * Action: Deletes a summary for a given item.
-   * This action is not explicitly requested in the prompt but is crucial for data management.
    * @param item The ID of the item whose summary should be deleted.
    * @effects Removes the summary associated with the specified item.
    */

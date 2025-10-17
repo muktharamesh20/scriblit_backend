@@ -5,11 +5,19 @@ My main feature will now be a tagging feature which allows students to tag lectu
 
 
 # Specific Concept Changes
-## Summarizer
-In assignment 2, the summarizer concept did not have an LLM component.  Now, I have augmented it with an LLM component that allows you to either manually create the summary or use AI to do it for you for a specific note.
+## Summaries
+In assignment 2, the summarizer concept did not have an LLM component.  Now, I have augmented it with an LLM component that allows you to either manually create the summary or use AI to do it for you for a specific note.  I've also added a deleteSummary() method as I've realized if you delete an item, then you would probably also want to delete the summary associated with it.
 
-## CollaborativeNotes
-I am no longer doing the collaboration feature.  The concept might have been a little too app-specific too.  This feature is now simply Notes.  Notes just have text and an owner associated with them.
+## CollaborativeNotes/Notes
+I am no longer doing the collaboration feature.  The concept might have been a little too app-specific too.  The concept is now simply Notes.  Notes just have text, when the note was created, and when it was last modified.  It also keeps track of the owner, which was not in CollaborativeNotes since those were shared notes.
 
 ## Folder
-Multiple changes to the folder concept.  I realized that I needed to add users to the state of the folder concept to track who owns each folder.  I also realized how seperated the concepts actually are (check designFile.md) and that I needed a deleteItem method here and I didn't actually need to delete items in the deleteFolder method (since we're only storing ids... the actual concept implementing the item/note will deal with that).
+There were multiple changes to the folder concept.  I realized that I needed to add users to the state to track who owns each folder.  I also realized that we needed a method to actually create a root folder for specific users, which the previous concept didn't have.  My old version also had a method called insertFolder() which was basically acting as a moveFolder() action.  I realized I needed to create a real createFolder() action, and change insertFolder() to moveFolder().  
+
+I also realized how seperated the concepts actually are (check designFile.md) and that I needed a deleteItem() action.
+
+## PasswordAuth
+The main change here was changing the state from using usernames and passwords, to using usernames and hashedPasswords.  This was something that ctx came up with when I was using it to help implement my concepts.  This helps increase security for our app. 
+
+## Tags
+This mostly stayed the same.  Once change I made here was adding an owner to tags.  I figured that it would be useful for a user to own their own tags, rather than everyone sharing every tag.  I also diallowed any tags that had empty labels, or labels that were completely whitespace.
