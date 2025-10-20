@@ -15,7 +15,7 @@ const flags = parseArgs(Deno.args, {
 
 const PORT = parseInt(flags.port, 10);
 const BASE_URL = flags.baseUrl;
-const CONCEPTS_DIR = "src/concepts";
+const CONCEPTS_DIR = "src/concepts/Scriblink";
 
 /**
  * Main server function to initialize DB, load concepts, and start the server.
