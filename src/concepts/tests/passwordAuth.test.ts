@@ -1,7 +1,7 @@
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { testDb } from "@utils/database.ts"; // Assuming this path is correct based on the example
 import { ID } from "@utils/types.ts"; // Assuming this path is correct
-import PasswordAuthConcept from "../Scriblink/passwordAuth.ts"; // Path to the concept file
+import PasswordAuthConcept from "../Scriblink/passwordAuthConcept.ts"; // Path to the concept file
 
 // Define constants for test usernames and passwords
 const usernameAlice = "alice_wonderland";

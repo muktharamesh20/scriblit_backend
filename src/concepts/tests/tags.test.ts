@@ -6,7 +6,7 @@ import {
 } from "jsr:@std/assert";
 import { testDb } from "../../utils/database.ts";
 import { ID } from "../../utils/types.ts";
-import TagConcept from "../Scriblink/tags.ts"; // Fixed path from "./tags.ts" to "../tags.ts" (assuming tags.ts is one directory up)
+import TagConcept from "../Scriblink/tagsConcept.ts"; // Fixed path from "./tags.ts" to "../tags.ts" (assuming tags.ts is one directory up)
 
 // Define some constant IDs for testing, similar to the example
 const userAlice = "user:Alice" as ID;

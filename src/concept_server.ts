@@ -17,6 +17,14 @@ const PORT = parseInt(flags.port, 10);
 const BASE_URL = flags.baseUrl;
 const CONCEPTS_DIR = "src/concepts/Scriblink";
 
+function toPascalCase(name: string) {
+  return name
+    .replace(/[-_\. ]+/g, " ")
+    .split(" ")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join("");
+}
+
 /**
  * Main server function to initialize DB, load concepts, and start the server.
  */
@@ -29,73 +37,76 @@ async function main() {
   // --- Dynamic Concept Loading and Routing ---
   console.log(`Scanning for concepts in ./${CONCEPTS_DIR}...`);
 
-  for await (
-    const entry of walk(CONCEPTS_DIR, {
-      maxDepth: 1,
-      includeDirs: true,
-      includeFiles: false,
-    })
-  ) {
-    if (entry.path === CONCEPTS_DIR) continue; // Skip the root directory
+  for await (const entry of walk(CONCEPTS_DIR, { maxDepth: 2, includeDirs: false, includeFiles: true })) {
+    if (!entry.name.endsWith("Concept.ts")) continue;
 
-    const conceptName = entry.name;
-    const conceptFilePath = `${entry.path}/${conceptName}Concept.ts`;
+    const filePath = entry.path;
+    const fileNameNoExt = entry.name.replace(/\.ts$/i, "");
+    const parentDirName = filePath.substring(0, filePath.lastIndexOf("/")).split("/").pop() || "";
+    const rawConceptName = parentDirName && parentDirName !== CONCEPTS_DIR.split("/").pop() ? parentDirName : fileNameNoExt.replace(/Concept$/i, "");
+    const conceptName = toPascalCase(rawConceptName);
 
     try {
-      const modulePath = toFileUrl(Deno.realPathSync(conceptFilePath)).href;
+      const modulePath = toFileUrl(Deno.realPathSync(filePath)).href;
       const module = await import(modulePath);
-      const ConceptClass = module.default;
+      const exported = module.default;
 
-      if (
-        typeof ConceptClass !== "function" ||
-        !ConceptClass.name.endsWith("Concept")
-      ) {
-        console.warn(
-          `! No valid concept class found in ${conceptFilePath}. Skipping.`,
-        );
+      const mountPaths = [`${BASE_URL}/${conceptName}`, `${BASE_URL}/${conceptName}Concept`];
+
+      // If the module exports a Hono app/router, mount it directly (support both path variants)
+      if (exported && typeof exported === "object" && (typeof exported.handle === "function" || typeof exported.fetch === "function")) {
+        for (const routePath of mountPaths) {
+          app.route(routePath, exported);
+          console.log(`Mounted Hono router at ${routePath}`);
+        }
         continue;
       }
 
-      const instance = new ConceptClass(db);
-      const conceptApiName = conceptName;
-      console.log(
-        `- Registering concept: ${conceptName} at ${BASE_URL}/${conceptApiName}`,
-      );
+      // If the module exports a class named *Concept, instantiate and expose public methods
+      if (typeof exported === "function" && exported.name.endsWith("Concept")) {
+        const InstanceClass = exported;
+        const instance = new InstanceClass(db);
 
-      const methodNames = Object.getOwnPropertyNames(
-        Object.getPrototypeOf(instance),
-      )
-        .filter((name) =>
-          name !== "constructor" && typeof instance[name] === "function"
+        const proto = Object.getPrototypeOf(instance);
+        const methodNames = Object.getOwnPropertyNames(proto).filter(
+          (n) => n !== "constructor" && typeof proto[n] === "function" && !n.startsWith("_"),
         );
 
-      for (const methodName of methodNames) {
-        const actionName = methodName;
-        const route = `${BASE_URL}/${conceptApiName}/${actionName}`;
-
-        app.post(route, async (c) => {
-          try {
-            const body = await c.req.json().catch(() => ({})); // Handle empty body
-            const result = await instance[methodName](body);
-            return c.json(result);
-          } catch (e) {
-            console.error(`Error in ${conceptName}.${methodName}:`, e);
-            return c.json({ error: "An internal server error occurred." }, 500);
+        for (const methodName of methodNames) {
+          for (const base of mountPaths) {
+            const route = `${base}/${methodName}`;
+            app.post(route, async (c) => {
+              try {
+                let payload: any = {};
+                try {
+                  payload = await c.req.json();
+                } catch {
+                  payload = {};
+                }
+                const result = await (instance as any)[methodName](payload);
+                if (result && typeof result === "object" && "error" in result) {
+                  return c.json(result, 400);
+                }
+                return c.json(result ?? {}, 200);
+              } catch (err) {
+                console.error(`Error executing ${methodName} on ${conceptName}:`, err);
+                return c.json({ error: "Internal Server Error" }, 500);
+              }
+            });
+            console.log(`Registered POST ${route}`);
           }
-        });
-        console.log(`  - Endpoint: POST ${route}`);
+        }
+        continue;
       }
-    } catch (e) {
-      console.error(
-        `! Error loading concept from ${conceptFilePath}:`,
-        e,
-      );
+
+      console.warn(`No valid export found in ${filePath}. Skipping.`);
+    } catch (err) {
+      console.error(`Failed to load concept from ${filePath}:`, err);
     }
   }
 
-  console.log(`\nServer listening on http://localhost:${PORT}`);
-  Deno.serve({ port: PORT }, app.fetch);
+  console.log(`Starting server on http://localhost:${PORT}${BASE_URL}`);
+  await Deno.serve({ port: PORT }, app.fetch as any);
 }
 
-// Run the server
 main();

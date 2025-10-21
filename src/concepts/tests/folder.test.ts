@@ -15,7 +15,7 @@ import FolderConcept, {
   FolderStructure,
   Item,
   User,
-} from "../Scriblink/folder.ts"; // Adjust path as necessary for your project
+} from "../Scriblink/folderConcept.ts"; // Adjust path as necessary for your project
 import { ID } from "@utils/types.ts"; // Assuming `freshID` returns `ID` or similar type, and User/Item/Folder extend ID.
 
 // --- Helper functions for testing ---

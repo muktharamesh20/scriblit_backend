@@ -1,7 +1,7 @@
 import { assertEquals, assertExists, assertNotEquals } from "jsr:@std/assert";
 import { freshID, testDb } from "@utils/database.ts";
 import { ID } from "@utils/types.ts";
-import SummariesConcept from "../Scriblink/summarizer.ts";
+import SummariesConcept from "../Scriblink/summariesConcept.ts";
 
 // Test data for integration tests
 const ITEM_ID_1 = freshID();
