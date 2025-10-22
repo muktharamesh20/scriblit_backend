@@ -97,6 +97,19 @@ export default class FolderConcept {
   }
 
   /**
+   * Internal helper: Get folder details by ID
+   */
+  async _getFolderDetails(
+    { folderId }: { folderId: Folder },
+  ): Promise<FolderStructure | { error: string }> {
+    const folder = await this.folders.findOne({ _id: folderId });
+    if (!folder) {
+      return { error: `Folder with ID ${folderId} not found.` };
+    }
+    return folder;
+  }
+
+  /**
    * Helper function to check if targetId is a hierarchical descendant of ancestorId.
    * This prevents moving a folder into its own subfolder (which would create a cycle).
    */
@@ -106,8 +119,10 @@ export default class FolderConcept {
   ): Promise<boolean> {
     const queue: Folder[] = [ancestorId];
     const visited: Set<Folder> = new Set(); // Track visited folders to prevent infinite loops in cycles
+    let iterationCount = 0;
 
     while (queue.length > 0) {
+      iterationCount++;
       const currentId = queue.shift()!;
 
       // Skip if already visited or if current is the target itself (handled by earlier checks)
@@ -126,15 +141,19 @@ export default class FolderConcept {
       }
 
       // If targetId is a direct child of currentId, then it is a descendant of ancestorId
-      if (folderDoc.folders.includes(targetId)) {
+      const isDirectChild = folderDoc.folders.includes(targetId);
+
+      if (isDirectChild) {
         return true;
       }
 
       // Add all children of currentId to the queue to check their descendants
-      for (const childId of folderDoc.folders) {
-        if (!visited.has(childId)) { // Only add if not already processed/queued
-          queue.push(childId);
-        }
+      const newChildren = folderDoc.folders.filter((childId) =>
+        !visited.has(childId)
+      );
+
+      for (const childId of newChildren) {
+        queue.push(childId);
       }
     }
     return false;
@@ -172,29 +191,86 @@ export default class FolderConcept {
     if (f1Id === f2Id) {
       return { error: `Cannot move a folder into itself.` };
     }
-    if (await this.isDescendant(f2Id, f1Id)) {
+    const isDescendantResult = await this.isDescendant(f2Id, f1Id);
+    if (isDescendantResult) {
       return {
         error:
           `Cannot move folder ${f1Id} into its own descendant folder ${f2Id}.`,
       };
     }
 
-    // Effect: If f1 is already in a folder, remove it from that folder.
-    // We find any folder whose 'folders' array contains f1Id (and is not f1 itself)
-    // and remove f1Id from its children.
-    await this.folders.updateOne(
-      { folders: f1Id, _id: { $ne: f1Id } }, // Query for the current parent of f1
-      { $pull: { folders: f1Id } }, // Remove f1Id from its 'folders' array
+    // CRITICAL: Ensure single-parent invariant
+    console.log(
+      "🔄 [FolderConcept.moveFolder] Starting move operation - Step 1: Remove from all current parents",
     );
-    // If f1 was a root folder or not linked to any parent, this operation will simply affect 0 documents, which is correct.
+    // Step 1: Remove f1 from ALL current parents (including any duplicates)
+    const removeResult = await this.folders.updateMany(
+      { folders: f1Id },
+      { $pull: { folders: f1Id } },
+    );
 
-    // Effect: Move it into f2 (add f1Id to f2's 'folders' array).
-    // Use $addToSet to ensure f1Id is added only once (prevents duplicates).
-    await this.folders.updateOne(
+    console.log("✅ [FolderConcept.moveFolder] Step 1 complete:", {
+      removedFromParents: removeResult.modifiedCount,
+      matchedParents: removeResult.matchedCount,
+    });
+
+    // Step 2: Add f1 to the new parent ONLY
+    console.log("🔄 [FolderConcept.moveFolder] Step 2: Adding to new parent");
+    const addResult = await this.folders.updateOne(
       { _id: f2Id },
       { $addToSet: { folders: f1Id } },
     );
 
+    console.log("✅ [FolderConcept.moveFolder] Step 2 complete:", {
+      addedToParent: addResult.modifiedCount,
+      matchedParent: addResult.matchedCount,
+    });
+
+    // Step 3: Final safety check - remove from any remaining parents
+    console.log(
+      "🔄 [FolderConcept.moveFolder] Step 3: Safety check - removing from any remaining parents",
+    );
+    const safetyResult = await this.folders.updateMany(
+      { folders: f1Id, _id: { $ne: f2Id } },
+      { $pull: { folders: f1Id } },
+    );
+
+    if (safetyResult.modifiedCount > 0) {
+      console.log("⚠️ [FolderConcept.moveFolder] Safety cleanup performed:", {
+        additionalParentsRemoved: safetyResult.modifiedCount,
+      });
+    }
+
+    // Final verification: Check that the move was successful
+    console.log(
+      "🔍 [FolderConcept.moveFolder] Final verification - checking folder structure",
+    );
+    const finalF1 = await this.folders.findOne({ _id: f1Id });
+    const finalF2 = await this.folders.findOne({ _id: f2Id });
+
+    console.log("🔍 [FolderConcept.moveFolder] Final state:", {
+      movedFolder: finalF1
+        ? {
+          _id: finalF1._id,
+          title: finalF1.title,
+          folders: finalF1.folders,
+          elements: finalF1.elements,
+        }
+        : null,
+      parentFolder: finalF2
+        ? {
+          _id: finalF2._id,
+          title: finalF2.title,
+          folders: finalF2.folders,
+          elements: finalF2.elements,
+        }
+        : null,
+      isInParent: finalF2 ? finalF2.folders.includes(f1Id) : false,
+    });
+
+    console.log(
+      "✅ [FolderConcept.moveFolder] Move operation completed successfully",
+    );
     return { folder: f1Id };
   }
 
@@ -362,24 +438,5 @@ export default class FolderConcept {
       return { error: folder.error };
     }
     return folder.elements ?? [];
-  }
-
-  /**
-   * Retrieves all stored details for a given folder ID.
-   * @param folderId The ID of the folder to retrieve.
-   * @returns `FolderStructure` object if found, otherwise `null`.
-   */
-  async _getFolderDetails(
-    { folderId }: { folderId: Folder },
-  ): Promise<FolderStructure | { error: string }> {
-    try {
-      const folder = await this.folders.findOne({ _id: folderId });
-      return folder ?? { error: `Folder with ID ${folderId} not found.` };
-    } catch (e: any) {
-      console.error(`Error getting folder details for ${folderId}:`, e);
-      return {
-        error: `Error getting folder details for ${folderId}: ${e.message}`,
-      };
-    }
   }
 }

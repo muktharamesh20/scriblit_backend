@@ -89,7 +89,10 @@ export default class NotesConcept {
    * @returns The ID of the newly created note, or an error.
    */
   async createNote(
-    { title, user }: { title?: string; user: User },
+    { title, user }: {
+      title?: string;
+      user: User;
+    },
   ): Promise<{ note: Note } | { error: string }> {
     const noteId = freshID() as Note;
     const now = new Date(); // Set current time for both creation and modification

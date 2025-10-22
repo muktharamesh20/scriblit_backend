@@ -1,0 +1,522 @@
+---
+timestamp: 'Mon Oct 20 2025 22:50:35 GMT-0400 (Eastern Daylight Time)'
+parent: '[[../20251020_225035.9a18c3b4.md]]'
+content_id: 989d3f0e59964cc2c810708dda8fb2b9217e9462a66a0be77db4458ec070ae08
+---
+
+# file: src/concepts/Scriblink/request.ts
+
+```typescript
+import { Db } from "npm:mongodb";
+import { Empty, ID } from "@utils/types.ts";
+
+// Import all the individual concepts
+import PasswordAuthConcept from "./passwordAuthConcept.ts";
+import FolderConcept from "./folderConcept.ts";
+import NotesConcept from "./notesConcept.ts";
+import TagConcept from "./tagsConcept.ts";
+import SummariesConcept from "./summariesConcept.ts";
+
+// Collection prefix to ensure namespace separation (unused but kept for consistency)
+const _PREFIX = "Request" + ".";
+
+// Generic types for the concept's external dependencies
+export type User = ID;
+export type Item = ID;
+export type Folder = ID;
+export type Note = ID;
+export type Tag = ID;
+
+/**
+ * Request types for different operations
+ */
+export interface UserRegistrationRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserLoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface NoteCreationRequest {
+  user: User;
+  title?: string;
+  content: string;
+  folderId: Folder;
+  tags?: string[];
+  generateSummary?: boolean;
+}
+
+export interface NoteUpdateRequest {
+  user: User;
+  noteId: Note;
+  title?: string;
+  content?: string;
+  folderId?: Folder;
+  tags?: string[];
+  generateSummary?: boolean;
+}
+
+export interface FolderCreationRequest {
+  user: User;
+  title: string;
+  parentFolderId: Folder;
+}
+
+export interface TaggingRequest {
+  user: User;
+  itemId: Item;
+  tagLabel: string;
+}
+
+/**
+ * Response types for operations
+ */
+export interface UserRegistrationResponse {
+  user: User;
+  rootFolder: Folder;
+}
+
+export interface NoteCreationResponse {
+  note: Note;
+  folder: Folder;
+  tags?: Tag[];
+  summary?: string;
+}
+
+/**
+ * @concept Request
+ * @purpose To orchestrate complex operations across multiple concepts
+ * @principle Provides high-level operations that coordinate between authentication,
+ *           folder management, note creation, tagging, and summarization concepts.
+ */
+export default class RequestConcept {
+  // Individual concept instances
+  private auth: PasswordAuthConcept;
+  private folders: FolderConcept;
+  private notes: NotesConcept;
+  private tags: TagConcept;
+  private summaries: SummariesConcept;
+
+  constructor(private readonly db: Db) {
+    // Initialize all concept instances
+    this.auth = new PasswordAuthConcept(db);
+    this.folders = new FolderConcept(db);
+    this.notes = new NotesConcept(db);
+    this.tags = new TagConcept(db);
+    this.summaries = new SummariesConcept(db);
+  }
+
+  /**
+   * Action: Registers a new user and automatically creates their root folder.
+   * @param request User registration details
+   * @effects Creates a new user account and initializes their folder structure
+   * @returns User ID and root folder ID, or an error
+   */
+  async registerUser(
+    request: UserRegistrationRequest,
+  ): Promise<UserRegistrationResponse | { error: string }> {
+    // Register the user
+    const authResult = await this.auth.register(request);
+    if ("error" in authResult) {
+      return authResult;
+    }
+
+    const { user } = authResult;
+
+    // Create root folder for the user
+    const folderResult = await this.folders.initializeFolder({ user });
+    if ("error" in folderResult) {
+      return {
+        error: `Failed to create root folder for user: ${folderResult.error}`,
+      };
+    }
+
+    return {
+      user,
+      rootFolder: folderResult.folder,
+    };
+  }
+
+  /**
+   * Action: Authenticates a user.
+   * @param request User login credentials
+   * @returns User ID or error
+   */
+  async loginUser(
+    request: UserLoginRequest,
+  ): Promise<{ user: User } | { error: string }> {
+    return await this.auth.authenticate(request);
+  }
+
+  /**
+   * Action: Creates a new note with optional folder placement, tagging, and summarization.
+   * @param request Note creation details
+   * @effects Creates a note, places it in the specified folder, applies tags, and optionally generates a summary
+   * @returns Note ID, folder ID, applied tags, and summary (if generated)
+   */
+  async createNote(
+    request: NoteCreationRequest,
+  ): Promise<NoteCreationResponse | { error: string }> {
+    const {
+      user,
+      title,
+      content,
+      folderId,
+      tags = [],
+      generateSummary = false,
+    } = request;
+
+    // Verify the folder exists and belongs to the user
+    const folderDetails = await this.folders._getFolderDetails({ folderId });
+    if ("error" in folderDetails) {
+      return { error: `Invalid folder: ${folderDetails.error}` };
+    }
+    if (folderDetails.owner !== user) {
+      return { error: "Folder does not belong to the user" };
+    }
+
+    // Create the note
+    const noteResult = await this.notes.createNote({ title, user });
+    if ("error" in noteResult) {
+      return noteResult;
+    }
+
+    const { note } = noteResult;
+
+    // Update note content
+    const contentResult = await this.notes.updateContent({
+      newContent: content,
+      noteId: note,
+      user,
+    });
+    if ("error" in contentResult) {
+      return { error: contentResult.error };
+    }
+
+    // Place note in the specified folder
+    const folderResult = await this.folders.insertItem({
+      item: note,
+      folder: folderId,
+    });
+    if ("error" in folderResult) {
+      return { error: folderResult.error };
+    }
+
+    const response: NoteCreationResponse = {
+      note,
+      folder: folderId,
+    };
+
+    // Apply tags if provided
+    if (tags.length > 0) {
+      const appliedTags: Tag[] = [];
+      for (const tagLabel of tags) {
+        const tagResult = await this.tags.addTag({
+          user,
+          label: tagLabel,
+          item: note,
+        });
+        if ("error" in tagResult) {
+          console.warn(`Failed to apply tag "${tagLabel}": ${tagResult.error}`);
+        } else {
+          appliedTags.push(tagResult.tag);
+        }
+      }
+      if (appliedTags.length > 0) {
+        response.tags = appliedTags;
+      }
+    }
+
+    // Generate summary if requested
+    if (generateSummary) {
+      const summaryResult = await this.summaries.setSummaryWithAI({
+        text: content,
+        item: note,
+      });
+      if ("error" in summaryResult) {
+        console.warn(`Failed to generate summary: ${summaryResult.error}`);
+      } else {
+        response.summary = summaryResult.summary;
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * Action: Updates an existing note with new content, folder placement, tags, and summary.
+   * @param request Note update details
+   * @effects Updates note content, moves to new folder if specified, updates tags, and optionally regenerates summary
+   * @returns Success or error
+   */
+  async updateNote(
+    request: NoteUpdateRequest,
+  ): Promise<Empty | { error: string }> {
+    const { user, noteId, title, content, folderId, tags, generateSummary } =
+      request;
+
+    // Verify note exists and belongs to user
+    const noteDetails = await this.notes.getNoteDetails({ noteId, user });
+    if ("error" in noteDetails) {
+      return noteDetails;
+    }
+
+    // Update title if provided
+    if (title !== undefined) {
+      const titleResult = await this.notes.setTitle({
+        newTitle: title,
+        noteId,
+        user,
+      });
+      if ("error" in titleResult) {
+        return titleResult;
+      }
+    }
+
+    // Update content if provided
+    if (content !== undefined) {
+      const contentResult = await this.notes.updateContent({
+        newContent: content,
+        noteId,
+        user,
+      });
+      if ("error" in contentResult) {
+        return contentResult;
+      }
+    }
+
+    // Move to new folder if specified
+    if (folderId !== undefined) {
+      // Verify new folder exists and belongs to user
+      const folderDetails = await this.folders._getFolderDetails({ folderId });
+      if ("error" in folderDetails) {
+        return { error: `Invalid folder: ${folderDetails.error}` };
+      }
+      if (folderDetails.owner !== user) {
+        return { error: "Folder does not belong to the user" };
+      }
+
+      // Move the note to the new folder
+      const moveResult = await this.folders.insertItem({
+        item: noteId,
+        folder: folderId,
+      });
+      if ("error" in moveResult) {
+        return moveResult;
+      }
+    }
+
+    // Update tags if provided
+    if (tags !== undefined) {
+      // Get current tags for the note
+      const currentTags = await this.tags._getTagsForItem({
+        user,
+        item: noteId,
+      });
+      if (!("error" in currentTags)) {
+        // Remove all current tags
+        for (const tag of currentTags) {
+          await this.tags.removeTagFromItem({ tag: tag._id, item: noteId });
+        }
+      }
+
+      // Add new tags
+      for (const tagLabel of tags) {
+        await this.tags.addTag({ user, label: tagLabel, item: noteId });
+      }
+    }
+
+    // Regenerate summary if requested and content was updated
+    if (generateSummary && content !== undefined) {
+      const summaryResult = await this.summaries.setSummaryWithAI({
+        text: content,
+        item: noteId,
+      });
+      if ("error" in summaryResult) {
+        console.warn(`Failed to regenerate summary: ${summaryResult.error}`);
+      }
+    }
+
+    return {};
+  }
+
+  /**
+   * Action: Creates a new folder for a user.
+   * @param request Folder creation details
+   * @effects Creates a new folder as a child of the specified parent folder
+   * @returns Folder ID or error
+   */
+  async createFolder(
+    request: FolderCreationRequest,
+  ): Promise<{ folder: Folder } | { error: string }> {
+    const { user, title, parentFolderId } = request;
+
+    // Verify parent folder exists and belongs to user
+    const parentDetails = await this.folders._getFolderDetails({
+      folderId: parentFolderId,
+    });
+    if ("error" in parentDetails) {
+      return { error: `Invalid parent folder: ${parentDetails.error}` };
+    }
+    if (parentDetails.owner !== user) {
+      return { error: "Parent folder does not belong to the user" };
+    }
+
+    // Create the folder
+    return await this.folders.createFolder({
+      user,
+      title,
+      parent: parentFolderId,
+    });
+  }
+
+  /**
+   * Action: Tags an item with a specific label.
+   * @param request Tagging details
+   * @effects Associates the item with the specified tag
+   * @returns Tag ID or error
+   */
+  async tagItem(
+    request: TaggingRequest,
+  ): Promise<{ tag: Tag } | { error: string }> {
+    const { user, itemId, tagLabel } = request;
+    return await this.tags.addTag({ user, label: tagLabel, item: itemId });
+  }
+
+  /**
+   * Action: Removes a tag from an item.
+   * @param user The user performing the action
+   * @param itemId The item to untag
+   * @param tagId The tag to remove
+   * @effects Removes the association between the item and tag
+   * @returns Success or error
+   */
+  async untagItem(
+    { _user, itemId, tagId }: { _user: User; itemId: Item; tagId: Tag },
+  ): Promise<Empty | { error: string }> {
+    return await this.tags.removeTagFromItem({ tag: tagId, item: itemId });
+  }
+
+  /**
+   * Action: Generates a summary for a note.
+   * @param user The user requesting the summary
+   * @param noteId The note to summarize
+   * @effects Creates or updates a summary for the note using AI
+   * @returns Summary text or error
+   */
+  async generateSummary(
+    { user, noteId }: { user: User; noteId: Note },
+  ): Promise<{ summary: string } | { error: string }> {
+    // Get note details to verify ownership and get content
+    const noteDetails = await this.notes.getNoteDetails({ noteId, user });
+    if ("error" in noteDetails) {
+      return noteDetails;
+    }
+
+    // Generate summary
+    const summaryResult = await this.summaries.setSummaryWithAI({
+      text: noteDetails.content,
+      item: noteId,
+    });
+
+    if ("error" in summaryResult) {
+      return summaryResult;
+    }
+
+    return { summary: summaryResult.summary };
+  }
+
+  /**
+   * Query: Gets all notes for a user with optional filtering.
+   * @param user The user whose notes to retrieve
+   * @param folderId Optional folder to filter by
+   * @param tagLabel Optional tag to filter by
+   * @returns Array of notes with their details
+   */
+  async getUserNotes(
+    { user, folderId, tagLabel }: {
+      user: User;
+      folderId?: Folder;
+      tagLabel?: string;
+    },
+  ): Promise<{ notes: unknown[] } | { error: string }> {
+    // Get all notes for the user
+    const notesResult = await this.notes.getNotesByUser({ ownerId: user });
+    if ("error" in notesResult) {
+      return notesResult;
+    }
+
+    let filteredNotes = notesResult;
+
+    // Filter by folder if specified
+    if (folderId !== undefined) {
+      const folderItems = await this.folders._getFolderItems({ folderId });
+      if ("error" in folderItems) {
+        return { error: `Invalid folder: ${folderItems.error}` };
+      }
+      filteredNotes = filteredNotes.filter((note) =>
+        folderItems.includes(note._id)
+      );
+    }
+
+    // Filter by tag if specified
+    if (tagLabel !== undefined) {
+      const tagResult = await this.tags._getAllUserTags({ user });
+      if ("error" in tagResult) {
+        return { error: `Failed to get tags: ${tagResult.error}` };
+      }
+
+      const tagWithLabel = tagResult.find((tag) => tag.label === tagLabel);
+      if (tagWithLabel) {
+        filteredNotes = filteredNotes.filter((note) =>
+          tagWithLabel.items.includes(note._id)
+        );
+      } else {
+        filteredNotes = []; // No notes with this tag
+      }
+    }
+
+    return { notes: filteredNotes };
+  }
+
+  /**
+   * Query: Gets the folder structure for a user.
+   * @param user The user whose folders to retrieve
+   * @param folderId Optional specific folder to get details for
+   * @returns Folder structure or error
+   */
+  async getFolderStructure(
+    { user, folderId }: { user: User; folderId?: Folder },
+  ): Promise<{ folders: unknown[]; items: unknown[] } | { error: string }> {
+    if (folderId !== undefined) {
+      // Get specific folder details
+      const folderDetails = await this.folders._getFolderDetails({ folderId });
+      if ("error" in folderDetails) {
+        return folderDetails;
+      }
+      if (folderDetails.owner !== user) {
+        return { error: "Folder does not belong to the user" };
+      }
+      return {
+        folders: folderDetails.folders,
+        items: folderDetails.elements,
+      };
+    } else {
+      // Get all folders for the user (this would need to be implemented in FolderConcept)
+      // For now, return the root folder
+      const userNotes = await this.notes.getNotesByUser({ ownerId: user });
+      if ("error" in userNotes) {
+        return userNotes;
+      }
+
+      // Find root folder by looking for folders with no parent
+      // This is a simplified approach - in practice, you'd want a proper query
+      return { folders: [], items: userNotes.map((note) => note._id) };
+    }
+  }
+}
+
+```
