@@ -112,19 +112,51 @@ export default class PasswordAuthConcept {
   async authenticate(
     { username, password }: { username: string; password: string },
   ): Promise<{ user: User } | { error: string }> {
+    console.log(
+      "🔐 [PasswordAuth.authenticate] Attempting authentication for username:",
+      username,
+    );
+    console.log(
+      "🔍 [PasswordAuth.authenticate] Password length:",
+      password?.length,
+      "Password provided:",
+      !!password,
+    );
+
     // Find the user document by the provided username
     const authUser = await this.users.findOne({ username });
 
+    console.log("🔍 [PasswordAuth.authenticate] User found:", !!authUser);
+
+    if (!authUser) {
+      console.error(
+        "❌ [PasswordAuth.authenticate] User not found in database",
+      );
+      return { error: "Invalid username or password." };
+    }
+
     // If no user is found with that username, or if the provided password
     // does not match the stored hash, authentication fails.
-    if (
-      !authUser || !(await comparePassword(password, authUser.passwordHash))
-    ) {
+    const passwordMatches = await comparePassword(
+      password,
+      authUser.passwordHash,
+    );
+    console.log(
+      "🔍 [PasswordAuth.authenticate] Password matches:",
+      passwordMatches,
+    );
+
+    if (!passwordMatches) {
+      console.error("❌ [PasswordAuth.authenticate] Password does not match");
       return { error: "Invalid username or password." };
     }
 
     // Requirement: the username and password combination exists and matches.
     // Effect: returns the user's ID
+    console.log(
+      "✅ [PasswordAuth.authenticate] Authentication successful for user:",
+      authUser._id,
+    );
     return { user: authUser._id };
   }
 }

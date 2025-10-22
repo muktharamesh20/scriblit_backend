@@ -132,14 +132,64 @@ export default class RequestConcept {
   }
 
   /**
-   * Action: Authenticates a user.
+   * Action: Authenticates a user and returns their root folder.
    * @param request User login credentials
-   * @returns User ID or error
+   * @returns User ID and root folder ID, or error
    */
   async loginUser(
     request: UserLoginRequest,
-  ): Promise<{ user: User } | { error: string }> {
-    return await this.auth.authenticate(request);
+  ): Promise<{ user: User; rootFolder: Folder } | { error: string }> {
+    console.log(
+      "🔐 [RequestConcept.loginUser] Login attempt for:",
+      request.username,
+    );
+    console.log(
+      "🔍 [RequestConcept.loginUser] Request received:",
+      JSON.stringify(request, null, 2),
+    );
+
+    const authResult = await this.auth.authenticate(request);
+
+    console.log("🔍 [RequestConcept.loginUser] Auth result:", authResult);
+
+    if ("error" in authResult) {
+      console.error(
+        "❌ [RequestConcept.loginUser] Authentication failed:",
+        authResult.error,
+      );
+      return authResult;
+    }
+
+    const { user } = authResult;
+    console.log(
+      "✅ [RequestConcept.loginUser] Authentication successful for user:",
+      user,
+    );
+
+    // Find or create the user's root folder
+    const existingFolders = await this.folders.folders.find({ owner: user })
+      .toArray();
+
+    let rootFolder;
+    if (existingFolders.length > 0) {
+      // Find folder titled "Root" or use the first folder
+      rootFolder = existingFolders.find((folder) => folder.title === "Root") ||
+        existingFolders[0];
+    } else {
+      // No folders exist, create root folder
+      const folderResult = await this.folders.initializeFolder({ user });
+      if ("error" in folderResult) {
+        return {
+          error: `Failed to initialize root folder: ${folderResult.error}`,
+        };
+      }
+      rootFolder = { _id: folderResult.folder };
+    }
+
+    return {
+      user,
+      rootFolder: rootFolder._id,
+    };
   }
 
   /**
@@ -151,6 +201,11 @@ export default class RequestConcept {
   async createNote(
     request: NoteCreationRequest,
   ): Promise<NoteCreationResponse | { error: string }> {
+    console.log(
+      "🚀 [RequestConcept.createNote] Starting note creation:",
+      request,
+    );
+
     const {
       user,
       title,
@@ -160,41 +215,80 @@ export default class RequestConcept {
       generateSummary = false,
     } = request;
 
+    console.log("🔍 [RequestConcept.createNote] Parsed parameters:", {
+      user,
+      title,
+      folderId,
+      contentLength: content?.length,
+    });
+
     // Verify the folder exists and belongs to the user
+    console.log("🔍 [RequestConcept.createNote] Verifying folder:", folderId);
     const folderDetails = await this.folders._getFolderDetails({ folderId });
     if ("error" in folderDetails) {
+      console.error(
+        "❌ [RequestConcept.createNote] Invalid folder:",
+        folderDetails.error,
+      );
       return { error: `Invalid folder: ${folderDetails.error}` };
     }
     if (folderDetails.owner !== user) {
+      console.error(
+        "❌ [RequestConcept.createNote] Folder doesn't belong to user",
+      );
       return { error: "Folder does not belong to the user" };
     }
+    console.log("✅ [RequestConcept.createNote] Folder verified");
 
     // Create the note (no folderId in note structure)
+    console.log(
+      "🔄 [RequestConcept.createNote] Creating note in Notes concept",
+    );
     const noteResult = await this.notes.createNote({ title, user });
     if ("error" in noteResult) {
+      console.error(
+        "❌ [RequestConcept.createNote] Failed to create note:",
+        noteResult.error,
+      );
       return noteResult;
     }
 
     const { note } = noteResult;
+    console.log("✅ [RequestConcept.createNote] Note created:", note);
 
     // Update note content
+    console.log("🔄 [RequestConcept.createNote] Updating note content");
     const contentResult = await this.notes.updateContent({
       newContent: content,
       noteId: note,
       user,
     });
     if ("error" in contentResult) {
+      console.error(
+        "❌ [RequestConcept.createNote] Failed to update content:",
+        contentResult.error,
+      );
       return { error: contentResult.error };
     }
+    console.log("✅ [RequestConcept.createNote] Content updated");
 
     // Place note in the specified folder
+    console.log(
+      "🔄 [RequestConcept.createNote] Adding note to folder:",
+      folderId,
+    );
     const folderResult = await this.folders.insertItem({
       item: note,
       folder: folderId,
     });
     if ("error" in folderResult) {
+      console.error(
+        "❌ [RequestConcept.createNote] Failed to add note to folder:",
+        folderResult.error,
+      );
       return { error: folderResult.error };
     }
+    console.log("✅ [RequestConcept.createNote] Note added to folder");
 
     const response: NoteCreationResponse = {
       note,
@@ -234,6 +328,10 @@ export default class RequestConcept {
       }
     }
 
+    console.log(
+      "✅ [RequestConcept.createNote] Note creation completed successfully:",
+      response,
+    );
     return response;
   }
 
@@ -598,7 +696,7 @@ export default class RequestConcept {
       }
 
       // Always try to get or create a root folder for this user
-      let rootFolder;
+      let _rootFolder;
 
       // First, try to find existing folders
       const existingFolders = await this.folders.folders.find({ owner: user })
@@ -606,7 +704,7 @@ export default class RequestConcept {
 
       if (existingFolders.length > 0) {
         // Use the first folder as root (or find one with title "Root")
-        rootFolder = existingFolders.find((folder) =>
+        _rootFolder = existingFolders.find((folder) =>
           folder.title === "Root"
         ) || existingFolders[0];
       } else {
@@ -617,7 +715,7 @@ export default class RequestConcept {
           // Try to find any folder for this user with a different query
           const anyFolder = await this.folders.folders.findOne({ owner: user });
           if (anyFolder) {
-            rootFolder = anyFolder;
+            _rootFolder = anyFolder;
           } else {
             // If still no folder found, create a basic one manually
             const folderId = freshID() as Folder;
@@ -628,7 +726,7 @@ export default class RequestConcept {
               folders: [],
               elements: [],
             });
-            rootFolder = {
+            _rootFolder = {
               _id: folderId,
               owner: user,
               title: "Root",
@@ -637,7 +735,7 @@ export default class RequestConcept {
             };
           }
         } else {
-          rootFolder = {
+          _rootFolder = {
             _id: rootFolderResult.folder,
             owner: user,
             title: "Root",
@@ -747,6 +845,179 @@ export default class RequestConcept {
       "✅ [RequestConcept.deleteFolder] Successfully deleted folder and all contents",
     );
     return {};
+  }
+
+  /**
+   * Action: Deletes a note.
+   * @param request Note deletion details
+   * @effects Deletes the note from the database
+   * @returns Empty object or error
+   */
+  async deleteNote(
+    { noteId, user }: { noteId: Note; user: User },
+  ): Promise<Empty | { error: string }> {
+    console.log("🗑️ [RequestConcept.deleteNote] Deleting note:", noteId);
+
+    // Verify the note belongs to the user
+    const note = await this.notes.notes.findOne({ _id: noteId });
+    if (!note) {
+      return { error: "Note not found" };
+    }
+
+    if (note.owner !== user) {
+      return { error: "Note does not belong to user" };
+    }
+
+    return await this.notes.deleteNote({ noteId, user });
+  }
+
+  /**
+   * Action: Gets all tags for a specific item.
+   * @param request Item and user details
+   * @returns List of tag labels or error
+   */
+  async getItemTags(
+    { user, itemId }: { user: User; itemId: Item },
+  ): Promise<{ tags: string[] } | { error: string }> {
+    const result = await this.tags._getTagsForItem({ user, item: itemId });
+
+    if ("error" in result) {
+      return result;
+    }
+
+    // Extract tag labels from TagStructure array
+    return { tags: result.map((tag) => tag.label) };
+  }
+
+  /**
+   * Action: Gets all tags for a user.
+   * @param request User details
+   * @returns List of all user's tags or error
+   */
+  async getUserTags(
+    { user }: { user: User },
+  ): Promise<{ tags: string[] } | { error: string }> {
+    const result = await this.tags._getAllUserTags({ user });
+
+    if ("error" in result) {
+      return result;
+    }
+
+    // Extract tag labels from TagStructure array
+    return { tags: result.map((tag) => tag.label) };
+  }
+
+  /**
+   * Action: Sets a summary for an item.
+   * @param request Summary details
+   * @effects Creates or updates a summary for the item
+   * @returns Summary document or error
+   */
+  async setSummary(
+    { user, itemId, summary }: { user: User; itemId: Item; summary: string },
+  ): Promise<{ summary: string } | { error: string }> {
+    // Verify the item belongs to the user
+    const note = await this.notes.notes.findOne({ _id: itemId as Note });
+    if (!note) {
+      return { error: "Item not found" };
+    }
+
+    if (note.owner !== user) {
+      return { error: "Item does not belong to user" };
+    }
+
+    const result = await this.summaries.setSummary({
+      item: itemId,
+      summary: summary,
+    });
+
+    if ("error" in result) {
+      return result;
+    }
+
+    return { summary: result.summary };
+  }
+
+  /**
+   * Action: Gets the summary for an item.
+   * @param request Item details
+   * @returns Summary text or error
+   */
+  async getSummary(
+    { user, itemId }: { user: User; itemId: Item },
+  ): Promise<{ summary: string | null } | { error: string }> {
+    // Verify the item belongs to the user
+    const note = await this.notes.notes.findOne({ _id: itemId as Note });
+    if (!note) {
+      return { error: "Item not found" };
+    }
+
+    if (note.owner !== user) {
+      return { error: "Item does not belong to user" };
+    }
+
+    const result = await this.summaries.getSummary({ item: itemId });
+
+    if ("error" in result) {
+      return result;
+    }
+
+    return { summary: result.summary };
+  }
+
+  /**
+   * Action: Deletes the summary for an item.
+   * @param request Item details
+   * @effects Removes the summary from the database
+   * @returns Empty object or error
+   */
+  async deleteSummary(
+    { user, itemId }: { user: User; itemId: Item },
+  ): Promise<Empty | { error: string }> {
+    // Verify the item belongs to the user
+    const note = await this.notes.notes.findOne({ _id: itemId as Note });
+    if (!note) {
+      return { error: "Item not found" };
+    }
+
+    if (note.owner !== user) {
+      return { error: "Item does not belong to user" };
+    }
+
+    return await this.summaries.deleteSummary({ item: itemId });
+  }
+
+  /**
+   * Action: Gets all summaries for a user's notes.
+   * @param request User details
+   * @returns List of summaries or error
+   */
+  async getUserSummaries(
+    { user }: { user: User },
+  ): Promise<
+    { summaries: Array<{ itemId: Item; summary: string }> } | { error: string }
+  > {
+    // Get all user's notes
+    const notes = await this.notes.getNotesByUser({ ownerId: user });
+    if ("error" in notes) {
+      return notes;
+    }
+
+    // Fetch summaries for each note
+    const summaries: Array<{ itemId: Item; summary: string }> = [];
+    for (const note of notes) {
+      const summaryResult = await this.summaries.getSummary({
+        item: note._id as Item,
+      });
+      if (!("error" in summaryResult) && summaryResult.summary) {
+        summaries.push({
+          itemId: note._id as Item,
+          summary: summaryResult.summary,
+        });
+      }
+    }
+
+    return { summaries };
   }
 
   /**
