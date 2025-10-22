@@ -539,14 +539,20 @@ export default class RequestConcept {
    * Action: Removes a tag from an item.
    * @param user The user performing the action
    * @param itemId The item to untag
-   * @param tagId The tag to remove
+   * @param tagLabel The tag label to remove
    * @effects Removes the association between the item and tag
    * @returns Success or error
    */
   async untagItem(
-    { _user, itemId, tagId }: { _user: User; itemId: Item; tagId: Tag },
+    { user, itemId, tagLabel }: { user: User; itemId: Item; tagLabel: string },
   ): Promise<Empty | { error: string }> {
-    return await this.tags.removeTagFromItem({ tag: tagId, item: itemId });
+    // First, find the tag by label
+    const tag = await this.tags.findOne({ label: tagLabel, user });
+    if (!tag) {
+      return { error: `Tag with label "${tagLabel}" not found` };
+    }
+
+    return await this.tags.removeTagFromItem({ tag: tag._id, item: itemId });
   }
 
   /**
