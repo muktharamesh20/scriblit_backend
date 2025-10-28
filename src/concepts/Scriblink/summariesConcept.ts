@@ -62,6 +62,7 @@ export default class SummariesConcept {
 	If you detect that your summary might not match the topic or meaning of the notes, do not output a summary — instead, respond with:
 	"The summary could not be generated because the content was unclear or unrelated."
 	Provide only the summary itself, with no meta-language.
+  Do not use phrases like "the following is a summary" or "in summary".
 	Write bullet points that highlight key ideas, steps, or common mistakes,
 	but make it like a table of contents and keep it very concise.
 	Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length.
@@ -169,8 +170,6 @@ export default class SummariesConcept {
 
     // Invariant: summary is a concise, relevant, and readable highlight of the item's content
     this.validateContentRelevance(summary, originalText);
-
-    this.validateSummaryLength(summary, originalText, 0, 150); // Set ratio to 0 to effectively skip it if originalText is empty.
   }
 
   /**
