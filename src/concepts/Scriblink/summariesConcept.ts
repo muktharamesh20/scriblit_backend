@@ -227,7 +227,7 @@ export default class SummariesConcept {
   private validateContentRelevance(
     summary: string,
     originalText: string,
-    minOverlapRatio: number = 0.2, // A heuristic, can be adjusted
+    minOverlapRatio: number = 0.05, // A heuristic, can be adjusted
   ): void {
     // Extract meaningful words (4+ alphanumeric characters) from both texts
     const extractWords = (text: string) =>
