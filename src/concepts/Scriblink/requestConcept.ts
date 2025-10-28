@@ -386,7 +386,7 @@ export default class RequestConcept {
       if (!("error" in currentTags)) {
         // Remove all current tags
         for (const tag of currentTags) {
-          await this.tags.removeTagFromItem({ tag: tag._id, item: noteId });
+          await this.tags.removeTagFromItem({ tag: tag.tagId, item: noteId });
         }
       }
 
@@ -874,19 +874,12 @@ export default class RequestConcept {
   /**
    * Action: Gets all tags for a specific item.
    * @param request Item and user details
-   * @returns List of tag labels or error
+   * @returns List of tag objects with tagId and label or error
    */
   async getItemTags(
     { user, itemId }: { user: User; itemId: Item },
-  ): Promise<{ tags: string[] } | { error: string }> {
-    const result = await this.tags._getTagsForItem({ user, item: itemId });
-
-    if ("error" in result) {
-      return result;
-    }
-
-    // Extract tag labels from TagStructure array
-    return { tags: result.map((tag) => tag.label) };
+  ): Promise<{ tagId: Tag; label: string }[] | { error: string }> {
+    return await this.tags._getTagsForItem({ user, item: itemId });
   }
 
   /**

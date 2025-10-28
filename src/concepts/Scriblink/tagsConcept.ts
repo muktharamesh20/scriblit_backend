@@ -196,16 +196,19 @@ export default class TagConcept {
    * @param user The ID of the user whose tags are being queried.
    * @param item The ID of the item to find associated tags for.
    *
-   * @returns An array of `TagStructure` objects (full tag details) that match the criteria.
+   * @returns An array of objects containing tag ID and label that match the criteria.
    *          Returns an object with an `error` string on database query failure.
    */
   async _getTagsForItem(
     { user, item }: { user: User; item: Item },
-  ): Promise<TagStructure[] | { error: string }> {
+  ): Promise<{ tagId: Tag; label: string }[] | { error: string }> {
     try {
       // Find tags belonging to the user that also contain the specified item in their 'items' array.
       const tags = await this.tags.find({ owner: user, items: item }).toArray();
-      return tags;
+      return tags.map((tag) => ({
+        tagId: tag._id,
+        label: tag.label,
+      }));
     } catch (e: any) {
       console.error(`Error getting tags for item ${item} for user ${user}:`, e);
       return {
