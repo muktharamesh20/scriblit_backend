@@ -68,7 +68,8 @@ export default class SummariesConcept {
 	Again, to reiterate, keep it as concise as possible, making it at most 40% of the total transcript length.
 	Try writing 3–5 bullet points total.
 	Make sure that you only add high level concepts, not detailed steps.
-	Keep it accurate, relevant, and tied directly to the notes provided.`;
+	Keep it accurate, relevant, and tied directly to the notes provided.
+  Keep it under 180 words.`;
   }
 
   /**
@@ -170,6 +171,8 @@ export default class SummariesConcept {
 
     // Invariant: summary is a concise, relevant, and readable highlight of the item's content
     this.validateContentRelevance(summary, originalText);
+
+    this.validateSummaryLength(summary, originalText, 0, 200); // Set ratio to 0 to effectively skip it if originalText is empty.
   }
 
   /**
