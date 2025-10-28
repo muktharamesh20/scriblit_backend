@@ -33,5 +33,14 @@ This was really interesting.  When I tried to get the llm to test my class, it c
 I asked context to make a test file for me, and it was cool because it used something called stud.  stud basically allows me to just test the validation logic and error handling, basically stopping actual gemini api calls.  This was a cool idea because otherwise frequent testing could be expensive, as well as really slow.  If gemini's api was down, it would also cause failure.  This way, the unit tests test my actual code, not the gemini.  However, I'll still have tests with the gemini tests to make sure the prompting is good.
 
 
-Running all tests
-deno test --allow-read --allow-net --allow-env --allow-sys             
+# Major Changes Afterwards
+There were three changes to the backend afterwards.
+
+## Summary prompts:
+I updated the summary prompt that calls gemini to specifically prompt out my requirements.  For instance, my validation code was checking that all summaries were under 200 words, but I never told gemini to keep it under 200 words.  I also explicitly told it to avoid meta words like "I am" and "this is a summary", which also helped improve the number of times that it actually generated a valid summary.
+
+## Adding id's to labels:
+I had a method in tags concept which just returned the label names that the user could choose from.  However, we also needed the tag id in order to do interesting things with it such as untag tags from notes.  I didn't realize this, and had to fix it in my tags concept and my request concept.
+
+## Adding the Requests file:
+This is new code that basically lets me do syncs.  I was having trouble making the code automatically do actions like create root folders and such only from the frontend, so this was a way to combine actions. In the final assignment, when we truley do syncs, I'll get rid of this, or modify it.
