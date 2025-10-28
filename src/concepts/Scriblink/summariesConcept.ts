@@ -171,8 +171,6 @@ export default class SummariesConcept {
 
     // Invariant: summary is a concise, relevant, and readable highlight of the item's content
     this.validateContentRelevance(summary, originalText);
-
-    this.validateSummaryLength(summary, originalText, 0, 200); // Set ratio to 0 to effectively skip it if originalText is empty.
   }
 
   /**
@@ -229,7 +227,7 @@ export default class SummariesConcept {
   private validateContentRelevance(
     summary: string,
     originalText: string,
-    minOverlapRatio: number = 0.05, // A heuristic, can be adjusted
+    minOverlapRatio: number = 0.1, // A heuristic, can be adjusted
   ): void {
     // Extract meaningful words (4+ alphanumeric characters) from both texts
     const extractWords = (text: string) =>
