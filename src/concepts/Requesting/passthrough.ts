@@ -70,6 +70,8 @@ export const inclusions: Record<string, string> = {
   "/api/Folder/_getRootFolderId":
     "allow anyone to get the root folder id for a user",
   "/api/Notes/createNote": "allow anyone to create a note",
+  "/api/Folder/getFolderStructure":
+    "allow anyone to get the folder structure for a user",
 };
 
 /**
