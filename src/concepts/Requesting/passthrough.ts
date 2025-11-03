@@ -42,7 +42,6 @@ export const inclusions: Record<string, string> = {
     "allow anyone to get the children of a folder",
   "/api/Folder/_getFolderItems": "allow anyone to get the items in a folder",
   "/api/Notes/_getNoteDetails": "allow anyone to get the details of a note",
-  "/api/Notes/createNote": "allow anyone to create a note",
   "/api/Notes/deleteNote": "allow anyone to delete a note",
   "/api/Notes/setTitle": "allow anyone to set the title of a note",
   "/api/Notes/updateContent": "allow anyone to update the content of a note",
@@ -84,10 +83,7 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
-
-  "/api/Request/registerUser",
-  "/api/Request/loginUser",
-  "/api/Request/createNote",
+  "/api/Notes/createNote",
   "/api/Request/updateNote",
   "/api/Request/createFolder",
   "/api/Request/moveFolder",
@@ -95,7 +91,7 @@ export const exclusions: Array<string> = [
   "/api/Request/tagItem",
   "/api/Request/untagItem",
   "/api/Request/generateSummary",
-  "/api/Request/getUserNotes",
+  //"/api/Request/getUserNotes",
   "/api/Request/getFolderStructure",
   "/api/Request/deleteFolder",
   "/api/Request/deleteNote",
