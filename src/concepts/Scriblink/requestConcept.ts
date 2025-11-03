@@ -641,31 +641,6 @@ export default class RequestConcept {
     );
     return {};
   }
-
-  /**
-   * Action: Deletes a note.
-   * @param request Note deletion details
-   * @effects Deletes the note from the database
-   * @returns Empty object or error
-   */
-  async deleteNote(
-    { noteId, user }: { noteId: Note; user: User },
-  ): Promise<Empty | { error: string }> {
-    console.log("🗑️ [RequestConcept.deleteNote] Deleting note:", noteId);
-
-    // Verify the note belongs to the user
-    const note = await this.notes.notes.findOne({ _id: noteId });
-    if (!note) {
-      return { error: "Note not found" };
-    }
-
-    if (note.owner !== user) {
-      return { error: "Note does not belong to user" };
-    }
-
-    return await this.notes.deleteNote({ noteId, user });
-  }
-
   /**
    * Action: Gets all tags for a specific item.
    * @param request Item and user details
@@ -751,28 +726,6 @@ export default class RequestConcept {
     }
 
     return { summary: result.summary };
-  }
-
-  /**
-   * Action: Deletes the summary for an item.
-   * @param request Item details
-   * @effects Removes the summary from the database
-   * @returns Empty object or error
-   */
-  async deleteSummary(
-    { user, itemId }: { user: User; itemId: Item },
-  ): Promise<Empty | { error: string }> {
-    // Verify the item belongs to the user
-    const note = await this.notes.notes.findOne({ _id: itemId as Note });
-    if (!note) {
-      return { error: "Item not found" };
-    }
-
-    if (note.owner !== user) {
-      return { error: "Item does not belong to user" };
-    }
-
-    return await this.summaries.deleteSummary({ item: itemId });
   }
 
   /**

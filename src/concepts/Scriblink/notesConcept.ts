@@ -55,9 +55,9 @@ export default class NotesConcept {
    * @param user The user attempting to access the note (optional, for ownership check).
    * @returns The NoteStructure if found and owned (if user provided), or an error object.
    */
-  private async _getNoteDetails(
+  public async _getNoteDetails(
     noteId: Note,
-    user?: User, // Optional user for ownership check, passed for modification/deletion actions
+    user: User, // Optional user for ownership check, passed for modification/deletion actions
   ): Promise<NoteStructure | { error: string }> {
     try {
       const note = await this.notes.findOne({ _id: noteId });
