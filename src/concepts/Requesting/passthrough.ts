@@ -69,6 +69,7 @@ export const inclusions: Record<string, string> = {
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
     "allow anyone to get the root folder id for a user",
+  "/api/Notes/createNote": "allow anyone to create a note",
 };
 
 /**
@@ -83,7 +84,6 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
-  "/api/Notes/createNote",
   "/api/Request/updateNote",
   "/api/Request/createFolder",
   "/api/Request/moveFolder",

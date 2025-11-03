@@ -61,32 +61,6 @@ export const DeleteSummaryOnItemDeletion: Sync = ({ item }) => ({
 
 /********************************** User Requests **********************************/
 
-export const CreateNoteRequest: Sync = (
-  {
-    user,
-    content,
-    folder,
-    title,
-    noteId,
-  },
-) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Scriblink/createNote",
-      user,
-      content,
-      folder,
-      title,
-    },
-    { noteId },
-  ]),
-  then: actions([Notes.createNote, {
-    user,
-    title,
-  }, { noteId }]),
-});
-
 /** when a note is created, initialize it by adding it to the correct folder */
 export const InitializeNewlyCreatedNote: Sync = (
   {
@@ -94,35 +68,25 @@ export const InitializeNewlyCreatedNote: Sync = (
     content,
     folder,
     title,
-    noteId,
+    note,
   },
 ) => ({
   when: actions(
-    [Requesting.request, {
-      path: "/Scriblink/createNote",
-      user,
-      content,
-      folder,
-      title,
-    }],
-    [
-      Notes.createNote,
-      { user, title },
-      { noteId },
-    ],
+    [Notes.createNote, { user, title, folder, content }, { note }],
   ),
   then: actions(
-    [Folder.insertItem, { item: noteId, folder }],
-    [Notes.updateContent, { user, noteId, newContent: content }],
+    [Folder.insertItem, { item: note, folder }],
+    [Notes.updateContent, { user, note, newContent: content }],
   ),
 });
 
-export const CreateNoteResponse: Sync = ({ noteId, folder }) => ({
+export const CreateNoteResponse: Sync = (
+  { folder, note },
+) => ({
   when: actions(
-    [Requesting.request, { path: "/Scriblink/createNote" }, { folder }],
-    [Notes.createNote, {}, { noteId }],
+    [Notes.createNote, { folder }, { note }],
   ),
-  then: actions([Requesting.respond, { note: noteId, folder: folder }]),
+  then: actions([Requesting.respond, { folder, note: note }]),
 });
 
 export const CreateFolderRequest: Sync = (

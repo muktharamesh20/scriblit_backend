@@ -411,6 +411,116 @@ export default class FolderConcept {
   }
 
   /**
+   * Query: Gets the folder structure for a user or a specific folder, flattened for service use.
+   * @param params An object containing a user and optional folderId.
+   * @returns An object with folders/items arrays, or { error }.
+   */
+  async getFolderStructure(
+    { user, folderId }: { user: User; folderId?: Folder },
+  ): Promise<{ folders: unknown[]; items: unknown[] } | { error: string }> {
+    // If a specific folderId is requested, get its tree structure
+    if (folderId !== undefined) {
+      // Get specific folder details
+      const folderDetails = await this._getFolderDetails({ folderId });
+      if ("error" in folderDetails) {
+        return folderDetails;
+      }
+      if (folderDetails.owner !== user) {
+        return { error: "Folder does not belong to the user" };
+      }
+      // Build nested children
+      const childFolders = [];
+      for (const childFolderId of folderDetails.folders) {
+        const childFolder = await this._getFolderDetails({
+          folderId: childFolderId,
+        });
+        if (!("error" in childFolder)) {
+          // Recursively get nested folders
+          const nestedStructure = await this.getFolderStructure({
+            user,
+            folderId: childFolder._id,
+          });
+          if (!("error" in nestedStructure)) {
+            childFolders.push({
+              ...childFolder,
+              children: nestedStructure.folders,
+              items: nestedStructure.items,
+            });
+          } else {
+            childFolders.push(childFolder);
+          }
+        }
+      }
+      return {
+        folders: childFolders,
+        items: folderDetails.elements,
+      };
+    } else {
+      // In the root case: get all folders for this user
+      // Try to find or create a root, but return a flat list of folders and their items
+      // (Notes: No need to call .notes service, just return folder element IDs.)
+      let allFolders = await this.folders.find({ owner: user }).toArray();
+
+      let _rootFolder;
+      if (allFolders.length > 0) {
+        _rootFolder = allFolders.find((folder) => folder.title === "Root") ||
+          allFolders[0];
+      } else {
+        // No folder exists, try to create root
+        const rootFolderResult = await this.initializeFolder({ user });
+        if ("error" in rootFolderResult) {
+          // Fallback: try to find any folder
+          const anyFolder = await this.folders.findOne({ owner: user });
+          if (anyFolder) {
+            _rootFolder = anyFolder;
+            allFolders = [anyFolder];
+          } else {
+            // Final fallback: create a root folder directly
+            const folderId = freshID() as Folder;
+            await this.folders.insertOne({
+              _id: folderId,
+              owner: user,
+              title: "Root",
+              folders: [],
+              elements: [],
+            });
+            _rootFolder = {
+              _id: folderId,
+              owner: user,
+              title: "Root",
+              folders: [],
+              elements: [],
+            };
+            allFolders = [_rootFolder];
+          }
+        } else {
+          _rootFolder = {
+            _id: rootFolderResult.folder,
+            owner: user,
+            title: "Root",
+            folders: [],
+            elements: [],
+          };
+          allFolders = [_rootFolder];
+        }
+      }
+
+      // Gather all element IDs (items) from all folders
+      const allItems: unknown[] = [];
+      for (const folder of allFolders) {
+        if (folder.elements && Array.isArray(folder.elements)) {
+          allItems.push(...folder.elements);
+        }
+      }
+
+      return {
+        folders: allFolders,
+        items: allItems,
+      };
+    }
+  }
+
+  /**
    * Query: Retrieves all children of a given folder ID.
    * @param folderId The ID of the folder to retrieve.
    * @returns `Folder[]` object if found, otherwise `null`.
