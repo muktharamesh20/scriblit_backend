@@ -348,7 +348,7 @@ export default class FolderConcept {
    * @effects Deletes the specified folder, all its child folders, and all items contained within them.
    */
   async deleteFolder(
-    f: Folder,
+    { f }: { f: Folder },
   ): Promise<Item[] | { error: string }> {
     const targetFolder = await this.folders.findOne({ _id: f });
     if (!targetFolder) {

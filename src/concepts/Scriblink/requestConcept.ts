@@ -176,7 +176,7 @@ export default class RequestConcept {
 
     // Delete the folder and all its descendants using the folder concept
     console.log("🗑️ [RequestConcept.deleteFolder] Deleting folders...");
-    const result = await this.folders.deleteFolder(folderId);
+    const result = await this.folders.deleteFolder({ f: folderId });
     if ("error" in result) {
       console.error(
         "❌ [RequestConcept.deleteFolder] Failed to delete folders:",
