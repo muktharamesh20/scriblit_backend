@@ -319,36 +319,6 @@ export default class RequestConcept {
   }
 
   /**
-   * Action: Creates a new folder for a user.
-   * @param request Folder creation details
-   * @effects Creates a new folder as a child of the specified parent folder
-   * @returns Folder ID or error
-   */
-  async createFolder(
-    request: FolderCreationRequest,
-  ): Promise<{ folder: Folder } | { error: string }> {
-    const { user, title, parentFolderId } = request;
-
-    // Verify parent folder exists and belongs to user
-    const parentDetails = await this.folders._getFolderDetails({
-      folderId: parentFolderId,
-    });
-    if ("error" in parentDetails) {
-      return { error: `Invalid parent folder: ${parentDetails.error}` };
-    }
-    if (parentDetails.owner !== user) {
-      return { error: "Parent folder does not belong to the user" };
-    }
-
-    // Create the folder
-    return await this.folders.createFolder({
-      user,
-      title,
-      parent: parentFolderId,
-    });
-  }
-
-  /**
    * Action: Move a folder to a new parent.
    * @param request Move folder details
    * @effects Moves the folder to the new parent
@@ -381,8 +351,8 @@ export default class RequestConcept {
 
     // Move the folder using the folder concept
     const result = await this.folders.moveFolder({
-      folder: folderId,
-      newParent: newParentId,
+      folderId,
+      newParentId,
     });
 
     if ("error" in result) {
@@ -455,35 +425,6 @@ export default class RequestConcept {
     { _user, itemId, tagId }: { _user: User; itemId: Item; tagId: Tag },
   ): Promise<Empty | { error: string }> {
     return await this.tags.removeTagFromItem({ tag: tagId, item: itemId });
-  }
-
-  /**
-   * Action: Generates a summary for a note.
-   * @param user The user requesting the summary
-   * @param noteId The note to summarize
-   * @effects Creates or updates a summary for the note using AI
-   * @returns Summary text or error
-   */
-  async generateSummary(
-    { user, noteId }: { user: User; noteId: Note },
-  ): Promise<{ summary: string } | { error: string }> {
-    // Get note details to verify ownership and get content
-    const noteDetails = await this.notes.getNoteDetails({ noteId, user });
-    if ("error" in noteDetails) {
-      return noteDetails;
-    }
-
-    // Generate summary
-    const summaryResult = await this.summaries.setSummaryWithAI({
-      text: noteDetails.content,
-      item: noteId,
-    });
-
-    if ("error" in summaryResult) {
-      return summaryResult;
-    }
-
-    return { summary: summaryResult.summary };
   }
 
   /**

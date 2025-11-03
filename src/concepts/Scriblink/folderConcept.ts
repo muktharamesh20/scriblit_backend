@@ -166,36 +166,36 @@ export default class FolderConcept {
    *          If f1 is a new folder (not currently linked to any parent), it is just added to f2.
    */
   async moveFolder(
-    { folder: f1Id, newParent: f2Id }: { folder: Folder; newParent: Folder },
-  ): Promise<{ folder: Folder } | { error: string }> {
-    const f1 = await this.folders.findOne({ _id: f1Id });
-    const f2 = await this.folders.findOne({ _id: f2Id });
+    { folderId, newParentId }: { folderId: Folder; newParentId: Folder },
+  ): Promise<{ success: boolean } | { error: string }> {
+    const f1 = await this.folders.findOne({ _id: folderId });
+    const f2 = await this.folders.findOne({ _id: newParentId });
 
     if (!f1) {
-      return { error: `Folder with ID ${f1Id} not found.` };
+      return { error: `Folder with ID ${folderId} not found.` };
     }
     if (!f2) {
-      return { error: `New parent folder with ID ${f2Id} not found.` };
+      return { error: `New parent folder with ID ${newParentId} not found.` };
     }
 
     // Requirement: Both folders must have the same owner.
     if (f1.owner !== f2.owner) {
       return {
         error:
-          `Folders must have the same owner to be moved. Folder ${f1Id} owner: ${f1.owner}, New parent ${f2Id} owner: ${f2.owner}`,
+          `Folders must have the same owner to be moved. Folder ${folderId} owner: ${f1.owner}, New parent ${newParentId} owner: ${f2.owner}`,
       };
     }
 
     // Requirement: f2 is not hierarchically a descendant of f1.
     // Also, a folder cannot be moved into itself.
-    if (f1Id === f2Id) {
+    if (folderId === newParentId) {
       return { error: `Cannot move a folder into itself.` };
     }
-    const isDescendantResult = await this.isDescendant(f2Id, f1Id);
+    const isDescendantResult = await this.isDescendant(newParentId, folderId);
     if (isDescendantResult) {
       return {
         error:
-          `Cannot move folder ${f1Id} into its own descendant folder ${f2Id}.`,
+          `Cannot move folder ${folderId} into its own descendant folder ${newParentId}.`,
       };
     }
 
@@ -205,8 +205,8 @@ export default class FolderConcept {
     );
     // Step 1: Remove f1 from ALL current parents (including any duplicates)
     const removeResult = await this.folders.updateMany(
-      { folders: f1Id },
-      { $pull: { folders: f1Id } },
+      { folders: folderId },
+      { $pull: { folders: folderId } },
     );
 
     console.log("✅ [FolderConcept.moveFolder] Step 1 complete:", {
@@ -217,8 +217,8 @@ export default class FolderConcept {
     // Step 2: Add f1 to the new parent ONLY
     console.log("🔄 [FolderConcept.moveFolder] Step 2: Adding to new parent");
     const addResult = await this.folders.updateOne(
-      { _id: f2Id },
-      { $addToSet: { folders: f1Id } },
+      { _id: newParentId },
+      { $addToSet: { folders: folderId } },
     );
 
     console.log("✅ [FolderConcept.moveFolder] Step 2 complete:", {
@@ -231,8 +231,8 @@ export default class FolderConcept {
       "🔄 [FolderConcept.moveFolder] Step 3: Safety check - removing from any remaining parents",
     );
     const safetyResult = await this.folders.updateMany(
-      { folders: f1Id, _id: { $ne: f2Id } },
-      { $pull: { folders: f1Id } },
+      { folders: folderId, _id: { $ne: newParentId } },
+      { $pull: { folders: folderId } },
     );
 
     if (safetyResult.modifiedCount > 0) {
@@ -245,8 +245,8 @@ export default class FolderConcept {
     console.log(
       "🔍 [FolderConcept.moveFolder] Final verification - checking folder structure",
     );
-    const finalF1 = await this.folders.findOne({ _id: f1Id });
-    const finalF2 = await this.folders.findOne({ _id: f2Id });
+    const finalF1 = await this.folders.findOne({ _id: folderId });
+    const finalF2 = await this.folders.findOne({ _id: newParentId });
 
     console.log("🔍 [FolderConcept.moveFolder] Final state:", {
       movedFolder: finalF1
@@ -265,13 +265,13 @@ export default class FolderConcept {
           elements: finalF2.elements,
         }
         : null,
-      isInParent: finalF2 ? finalF2.folders.includes(f1Id) : false,
+      isInParent: finalF2 ? finalF2.folders.includes(folderId) : false,
     });
 
     console.log(
       "✅ [FolderConcept.moveFolder] Move operation completed successfully",
     );
-    return { folder: f1Id };
+    return { success: true };
   }
 
   async insertItem(
