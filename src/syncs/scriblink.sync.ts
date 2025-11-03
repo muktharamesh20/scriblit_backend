@@ -19,12 +19,12 @@ import { actions, Sync } from "@engine";
 /**
  * When a user is registered, automatically create their root folder
  */
-export const CreateRootFolderOnRegistration: Sync = ({ user }) => ({
-  when: actions([
-    PasswordAuth.register,
-    {},
-    { user },
-  ]),
+export const CreateRootFolderOnRegistration: Sync = (
+  { user },
+) => ({
+  when: actions(
+    [PasswordAuth.register, {}, { user }],
+  ),
   then: actions([
     Folder.initializeFolder,
     { user },

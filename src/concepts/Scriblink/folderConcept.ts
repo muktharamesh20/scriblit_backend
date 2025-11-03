@@ -439,4 +439,38 @@ export default class FolderConcept {
     }
     return folder.elements ?? [];
   }
+
+  /**
+   * Query: Retrieves the root folder ID for a given user.
+   * @param user The user to get the root folder for.
+   * @returns `Folder` ID if found or created, otherwise an error.
+   */
+  async _getRootFolderId(
+    { user }: { user: User },
+  ): Promise<{ rootFolder: Folder } | { error: string }> {
+    console.log(
+      "🔍 [FolderConcept._getRootFolderId] Getting root folder for user:",
+      user,
+    );
+    // First, try to find existing folders for this user
+    const existingFolders = await this.folders.find({ owner: user })
+      .toArray();
+
+    if (existingFolders.length > 0) {
+      // Find folder titled "Root" or use the first folder
+      const rootFolder = existingFolders.find((folder) =>
+        folder.title === "Root"
+      ) || existingFolders[0];
+      return { rootFolder: rootFolder._id };
+    } else {
+      // No folders exist, create root folder
+      const folderResult = await this.initializeFolder({ user });
+      if ("error" in folderResult) {
+        return {
+          error: `Failed to initialize root folder: ${folderResult.error}`,
+        };
+      }
+      return { rootFolder: folderResult.folder };
+    }
+  }
 }

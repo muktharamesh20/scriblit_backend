@@ -26,11 +26,50 @@
 
 export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
-  "/api/LikertSurvey/_getSurveyQuestions": "this is a public query",
-  "/api/LikertSurvey/_getSurveyResponses": "responses are public",
-  "/api/LikertSurvey/_getRespondentAnswers": "answers are visible",
-  "/api/LikertSurvey/submitResponse": "allow anyone to submit response",
-  "/api/LikertSurvey/updateResponse": "allow anyone to update their response",
+  "/api/Folder/initializeFolder": "allow anyone to initialize a folder",
+  "/api/Folder/createFolder": "allow anyone to create a folder",
+  "/api/Folder/_getFolderDetails":
+    "allow anyone to get the details of a folder",
+  "/api/Folder/isDescendant":
+    "allow anyone to check if a folder is a descendant of another folder",
+  "/api/Folder/moveFolder": "allow anyone to move a folder",
+  "/api/Folder/insertItem": "allow anyone to insert an item into a folder",
+  "/api/Folder/collectDescendants":
+    "allow anyone to collect the descendants of a folder",
+  "/api/Folder/deleteFolder": "allow anyone to delete a folder",
+  "/api/Folder/deleteItem": "allow anyone to delete an item from a folder",
+  "/api/Folder/_getFolderChildren":
+    "allow anyone to get the children of a folder",
+  "/api/Folder/_getFolderItems": "allow anyone to get the items in a folder",
+  "/api/Notes/_getNoteDetails": "allow anyone to get the details of a note",
+  "/api/Notes/createNote": "allow anyone to create a note",
+  "/api/Notes/deleteNote": "allow anyone to delete a note",
+  "/api/Notes/setTitle": "allow anyone to set the title of a note",
+  "/api/Notes/updateContent": "allow anyone to update the content of a note",
+  "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
+  "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
+  "/api/PasswordAuth/register": "allow anyone to register a user",
+  "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
+  "/api/Summaries/setSummary": "allow anyone to set a summary",
+  "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
+  "/api/Summaries/validateSummary": "allow anyone to validate a summary",
+  "/api/Summaries/validateSummaryLength":
+    "allow anyone to validate the length of a summary",
+  "/api/Summaries/validateContentRelevance":
+    "allow anyone to validate the content relevance of a summary",
+  "/api/Summaries/validateNoMetaLanguage":
+    "allow anyone to validate the no meta language of a summary",
+  "/api/Summaries/getSummary": "allow anyone to get a summary",
+  "/api/Summaries/deleteSummary": "allow anyone to delete a summary",
+  "/api/Tags/addTag": "allow anyone to add a tag to an item",
+  "/api/Tags/removeTagFromItem": "allow anyone to remove a tag from an item",
+  "/api/Tags/updateTags": "allow anyone to update the tags of an item",
+  "/api/Tags/_getItemsByTag": "allow anyone to get the items by a tag",
+  "/api/Tags/_getTagsForItem": "allow anyone to get the tags for an item",
+  "/api/Tags/_getTagDetails": "allow anyone to get the details of a tag",
+  "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
+  "/api/Folder/_getRootFolderId":
+    "allow anyone to get the root folder id for a user",
 };
 
 /**
@@ -45,6 +84,26 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   // Feel free to delete these example exclusions
-  "/api/LikertSurvey/createSurvey",
-  "/api/LikertSurvey/addQuestion",
+
+  "/api/Request/registerUser",
+  "/api/Request/loginUser",
+  "/api/Request/createNote",
+  "/api/Request/updateNote",
+  "/api/Request/createFolder",
+  "/api/Request/moveFolder",
+  "/api/Request/moveNote",
+  "/api/Request/tagItem",
+  "/api/Request/untagItem",
+  "/api/Request/generateSummary",
+  "/api/Request/getUserNotes",
+  "/api/Request/getFolderStructure",
+  "/api/Request/deleteFolder",
+  "/api/Request/deleteNote",
+  "/api/Request/getItemTags",
+  "/api/Request/getUserTags",
+  "/api/Request/setSummary",
+  "/api/Request/getSummary",
+  "/api/Request/deleteSummary",
+  "/api/Request/getUserSummaries",
+  "/api/Request/collectDescendants",
 ];
