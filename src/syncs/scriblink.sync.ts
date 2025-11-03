@@ -108,36 +108,6 @@ export const CreateFolderResponse: Sync = ({ request, folder }) => ({
   then: actions([Requesting.respond, { request, folder }]),
 });
 
-export const UpdateNoteRequest: Sync = (
-  { request, user, noteId, content, tags, title },
-) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Request/updateNote",
-      user,
-      noteId,
-      content,
-      tags,
-      title,
-    },
-    { request },
-  ]),
-  then: actions(
-    [Notes.updateContent, { user, noteId, newContent: content }],
-    [Notes.setTitle, { user, noteId, newTitle: title }],
-    [Tags.updateTags, { user, item: noteId, newTags: tags }],
-  ),
-});
-
-export const UpdateNoteResponse: Sync = ({ request }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Request/updateNote" }, { request }],
-    [Request.updateNote, {}, {}],
-  ),
-  then: actions([Requesting.respond, { request }]),
-});
-
 export const DeleteNoteRequest: Sync = ({ request, user, noteId }) => ({
   when: actions([
     Requesting.request,
