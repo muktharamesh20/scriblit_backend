@@ -139,33 +139,6 @@ export default class RequestConcept {
   }
 
   /**
-   * Action: Tags an item with a specific label.
-   * @param request Tagging details
-   * @effects Associates the item with the specified tag
-   * @returns Tag ID or error
-   */
-  async tagItem(
-    request: TaggingRequest,
-  ): Promise<{ tag: Tag } | { error: string }> {
-    const { user, itemId, tagLabel } = request;
-    return await this.tags.addTag({ user, label: tagLabel, item: itemId });
-  }
-
-  /**
-   * Action: Removes a tag from an item.
-   * @param user The user performing the action
-   * @param itemId The item to untag
-   * @param tagId The tag to remove
-   * @effects Removes the association between the item and tag
-   * @returns Success or error
-   */
-  async untagItem(
-    { _user, itemId, tagId }: { _user: User; itemId: Item; tagId: Tag },
-  ): Promise<Empty | { error: string }> {
-    return await this.tags.removeTagFromItem({ tag: tagId, item: itemId });
-  }
-
-  /**
    * Query: Gets all notes for a user with optional filtering.
    * Augments each note with a virtual 'folderId' field for display purposes.
    * @param user The user whose notes to retrieve

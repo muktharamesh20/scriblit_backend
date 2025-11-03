@@ -520,6 +520,19 @@ export default class FolderConcept {
     }
   }
 
+  async getAllFolders(
+    { user }: { user: User },
+  ): Promise<FolderStructure[] | { error: string }> {
+    try {
+      const allFolders = await this.folders.find({ owner: user })
+        .toArray();
+      return allFolders;
+    } catch (e: any) {
+      console.error(`Error getting all folders for user ${user}:`, e);
+      return { error: `Failed to retrieve folders: ${e.message}` };
+    }
+  }
+
   /**
    * Query: Retrieves all children of a given folder ID.
    * @param folderId The ID of the folder to retrieve.
