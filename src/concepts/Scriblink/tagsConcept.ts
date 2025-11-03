@@ -171,6 +171,25 @@ export default class TagConcept {
     }
   }
 
+  async updateTags(
+    { user, item, tags }: { user: User; item: Item; tags: string[] },
+  ): Promise<Empty | { error: string }> {
+    const currentTags = await this._getTagsForItem({ user, item: item });
+    if (!("error" in currentTags)) {
+      // Remove all current tags
+      for (const tag of currentTags) {
+        await this.removeTagFromItem({ tag: tag.tagId, item: item });
+      }
+    }
+
+    // Add new tags
+    for (const tagLabel of tags) {
+      await this.addTag({ user, label: tagLabel, item: item });
+    }
+
+    return {};
+  }
+
   // --- Query Methods (Following the pattern of the provided FolderConcept) ---
 
   /**

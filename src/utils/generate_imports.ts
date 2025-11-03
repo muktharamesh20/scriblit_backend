@@ -26,12 +26,14 @@ interface ConceptInfo {
 
 /**
  * Scans the base directory to find all valid concept implementations.
- * A valid concept is a directory named `{name}` containing a `{name}Concept.ts` file.
+ * A valid concept is a directory named `{name}` containing a `{name}Concept.ts` file,
+ * OR a `{name}Concept.ts` file directly in a subdirectory.
  */
 async function discoverConcepts(baseDir: string): Promise<ConceptInfo[]> {
   const concepts: ConceptInfo[] = [];
   const absoluteBaseDir = path.resolve(baseDir);
 
+  // First pass: look for directories with matching Concept.ts files (original pattern)
   for await (const dirEntry of Deno.readDir(absoluteBaseDir)) {
     if (!dirEntry.isDirectory) {
       continue;
@@ -65,6 +67,43 @@ async function discoverConcepts(baseDir: string): Promise<ConceptInfo[]> {
       }
     }
   }
+
+  // Second pass: look for Concept.ts files in subdirectories (for Scriblink pattern)
+  for await (const dirEntry of Deno.readDir(absoluteBaseDir)) {
+    if (!dirEntry.isDirectory) {
+      continue;
+    }
+
+    const subDirPath = path.join(absoluteBaseDir, dirEntry.name);
+
+    // Look for any *Concept.ts files in this subdirectory
+    for await (const fileEntry of Deno.readDir(subDirPath)) {
+      if (
+        fileEntry.isFile && fileEntry.name.endsWith("Concept.ts") &&
+        fileEntry.name !== "RequestConcept.ts"
+      ) {
+        const conceptFileName = fileEntry.name;
+        const conceptNameMatch = conceptFileName.match(/^(.+)Concept\.ts$/);
+        if (conceptNameMatch) {
+          const rawConceptName = conceptNameMatch[1];
+          const conceptName = rawConceptName.charAt(0).toUpperCase() +
+            rawConceptName.slice(1);
+
+          // Check if we already added this concept in the first pass
+          if (!concepts.find((c) => c.name === conceptName)) {
+            const conceptDirName = dirEntry.name;
+            concepts.push({
+              name: conceptName,
+              dirName: conceptDirName,
+              importPath: `./${conceptDirName}/${conceptFileName}`,
+            });
+            console.log(`  -> Found concept: ${conceptName}`);
+          }
+        }
+      }
+    }
+  }
+
   return concepts;
 }
 
