@@ -106,51 +106,6 @@ const authenticateRequest = async (
 };
 
 /**
- * Reusable authentication error where clause
- * Returns error frame if auth fails, empty frames if auth succeeds
- */
-const checkAuthError = async (
-  frames: Frames,
-  authToken: symbol,
-  user: symbol,
-  authenticatedUser: symbol,
-): Promise<Frames> => {
-  const originalFrame = frames[0];
-
-  // Check if token is missing or invalid
-  const token = originalFrame[authToken];
-  if (!token || typeof token !== "string" || token.trim() === "") {
-    console.log("❌ Auth error: Token missing or invalid");
-    return new Frames(originalFrame);
-  }
-
-  // The query returns { user: ... }, so we map it to authenticatedUser
-  frames = await frames.query(
-    PasswordAuth._getUserFromToken,
-    { authToken },
-    { user: authenticatedUser },
-  );
-
-  // If token is invalid or user doesn't match, return error frame
-  if (frames.length === 0) {
-    return new Frames(originalFrame);
-  }
-
-  const matchingFrames = frames.filter(($) => {
-    const authUser = $[authenticatedUser];
-    const reqUser = $[user];
-    return authUser === reqUser;
-  });
-
-  if (matchingFrames.length === 0) {
-    return new Frames(originalFrame);
-  }
-
-  // If auth succeeds, return empty to prevent this error sync from firing
-  return new Frames();
-};
-
-/**
  * Reusable token generation where clause for response syncs
  */
 const generateTokenForResponse = async (
@@ -223,42 +178,6 @@ export const CreateNoteResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-export const CreateNoteAuthError: Sync = ({
-  request,
-  user,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Notes/createNote",
-      user,
-      authToken,
-    },
-    { request },
-  ]),
-  where: async (frames) => {
-    const errorFrames = await checkAuthError(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-    // If we got frames back, auth failed - return them for error response
-    // If we got empty frames, auth succeeded - return empty to prevent error sync
-    return errorFrames;
-  },
-  then: actions([
-    Requesting.respond,
-    {
-      request,
-      error:
-        "Invalid or expired access token, or authenticated user does not match requested user.",
-    },
-  ]),
-});
-
 export const CreateFolderRequest: Sync = ({
   request,
   user,
@@ -311,40 +230,4 @@ export const CreateFolderResponseError: Sync = ({ request, error }) => ({
     [Folder.createFolder, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
-});
-
-export const CreateFolderAuthError: Sync = ({
-  request,
-  user,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Folder/createFolder",
-      user,
-      authToken,
-    },
-    { request },
-  ]),
-  where: async (frames) => {
-    const errorFrames = await checkAuthError(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-    // If we got frames back, auth failed - return them for error response
-    // If we got empty frames, auth succeeded - return empty to prevent error sync
-    return errorFrames;
-  },
-  then: actions([
-    Requesting.respond,
-    {
-      request,
-      error:
-        "Invalid or expired access token, or authenticated user does not match requested user.",
-    },
-  ]),
 });
