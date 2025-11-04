@@ -30,7 +30,6 @@ export const inclusions: Record<string, string> = {
     "allow anyone to get the details of a folder",
   "/api/Folder/isDescendant":
     "allow anyone to check if a folder is a descendant of another folder",
-  "/api/Folder/moveFolder": "allow anyone to move a folder",
   "/api/Folder/insertItem": "allow anyone to insert an item into a folder",
   "/api/Folder/collectDescendants":
     "allow anyone to collect the descendants of a folder",
@@ -76,4 +75,5 @@ export const inclusions: Record<string, string> = {
 export const exclusions: Array<string> = [
   "/api/Notes/createNote",
   "/api/Folder/createFolder",
+  "/api/Folder/moveFolder",
 ];

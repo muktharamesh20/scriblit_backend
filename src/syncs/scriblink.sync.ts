@@ -133,6 +133,36 @@ export const CreateFolderRequest: Sync = ({
   then: actions([Folder.createFolder, { user, title, parent }]),
 });
 
+export const MoveFolderRequest: Sync = ({
+  request,
+  user,
+  folderId,
+  newParentId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([
+    Requesting.request,
+    {
+      path: "/Folder/moveFolder",
+      user,
+      folderId,
+      newParentId,
+      authToken,
+    },
+    { request },
+  ]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.moveFolder, { folderId, newParentId }]),
+});
+
 /********************************* User Responses *********************************/
 
 export const CreateNoteResponse: Sync = ({
@@ -166,6 +196,22 @@ export const CreateFolderResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, folder, accessToken }]),
 });
+
+export const MoveFolderResponse: Sync = ({
+  request,
+  success,
+  user,
+  accessToken,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/moveFolder", user }, { request }],
+    [Folder.moveFolder, {}, { success }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -180,6 +226,14 @@ export const CreateFolderResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Folder/createFolder" }, { request }],
     [Folder.createFolder, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const MoveFolderResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/moveFolder" }, { request }],
+    [Folder.moveFolder, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
