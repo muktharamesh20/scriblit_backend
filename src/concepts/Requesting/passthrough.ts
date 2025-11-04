@@ -47,24 +47,13 @@ export const inclusions: Record<string, string> = {
   "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
   "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
   "/api/PasswordAuth/register": "allow anyone to register a user",
-  "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
-  "/api/PasswordAuth/refresh":
-    "allow authenticated users to refresh their access token",
   "/api/Summaries/setSummary": "allow anyone to set a summary",
   "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
-  "/api/Summaries/validateSummary": "allow anyone to validate a summary",
-  "/api/Summaries/validateSummaryLength":
-    "allow anyone to validate the length of a summary",
-  "/api/Summaries/validateContentRelevance":
-    "allow anyone to validate the content relevance of a summary",
-  "/api/Summaries/validateNoMetaLanguage":
-    "allow anyone to validate the no meta language of a summary",
   "/api/Summaries/getSummary": "allow anyone to get a summary",
   "/api/Summaries/deleteSummary": "allow anyone to delete a summary",
   "/api/Tags/addTag": "allow anyone to add a tag to an item",
   "/api/Tags/removeTagFromItem": "allow anyone to remove a tag from an item",
   "/api/Tags/updateTags": "allow anyone to update the tags of an item",
-  "/api/Tags/_getItemsByTag": "allow anyone to get the items by a tag",
   "/api/Tags/_getTagsForItem": "allow anyone to get the tags for an item",
   "/api/Tags/_getTagDetails": "allow anyone to get the details of a tag",
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
