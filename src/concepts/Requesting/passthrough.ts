@@ -28,7 +28,6 @@ export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
   "/api/PasswordAuth/register": "allow anyone to register a user",
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
-  "/api/Notes/setTitle": "allow anyone to set the title of a note",
   "/api/Notes/updateContent": "allow anyone to update the content of a note",
   "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
   "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
@@ -63,6 +62,7 @@ export const exclusions: Array<string> = [
   "/api/Folder/moveFolder",
   "/api/Folder/deleteFolder", // Use Requesting syncs for authentication
   "/api/Notes/deleteNote", // Use Requesting syncs for authentication
+  "/api/Notes/setTitle", // Use Requesting syncs for authentication
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
