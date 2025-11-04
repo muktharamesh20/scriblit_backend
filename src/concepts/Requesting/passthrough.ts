@@ -27,6 +27,7 @@
 export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
   "/api/PasswordAuth/register": "allow anyone to register a user",
+  "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
   "/api/Folder/_getFolderDetails":
     "allow anyone to get the details of a folder",
   "/api/Folder/deleteFolder": "allow anyone to delete a folder",
@@ -64,4 +65,25 @@ export const exclusions: Array<string> = [
   "/api/Notes/createNote",
   "/api/Folder/createFolder",
   "/api/Folder/moveFolder",
+
+  // passthrough routes that are not public
+  "/api/Folder/insertItem",
+  "/api/Notes/_getNoteDetails",
+  "/api/Folder/initializeFolder",
+  "/api/Folder/isDescendant",
+  "/api/Folder/collectDescendants",
+  "/api/Folder/deleteItem",
+  "/api/Folder/_getFolderChildren",
+  "/api/Folder/_getFolderItems",
+  "/api/Folder/_getFolderDetails",
+  "/api/PasswordAuth/refresh",
+  "/api/PasswordAuth/_getUserFromToken",
+  "/api/PasswordAuth/_generateNewAccessToken",
+  "/api/Summaries/validateSummary",
+  "/api/Summaries/validateSummaryLength",
+  "/api/Summaries/validateContentRelevance",
+  "/api/Summaries/validateNoMetaLanguage",
+  "/api/Tags/updateTags",
+  "/api/Tags/_getItemsByTag",
+  "/api/Tags/_getTagDetails",
 ];
