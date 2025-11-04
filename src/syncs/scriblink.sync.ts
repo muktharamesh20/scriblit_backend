@@ -309,6 +309,33 @@ export const UpdateContentRequest: Sync = ({
   },
   then: actions([Notes.updateContent, { noteId, newContent, user }]),
 });
+
+export const MoveNoteRequest: Sync = ({
+  request,
+  user,
+  item,
+  folder,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Folder/insertItem",
+    user,
+    item,
+    folder,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.insertItem, { item, folder }]),
+});
+
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -428,6 +455,20 @@ export const UpdateContentResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
+
+export const MoveNoteResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, { path: "/Folder/insertItem", user }, {
+    request,
+  }], [Folder.insertItem, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -482,6 +523,14 @@ export const UpdateContentResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Notes/updateContent" }, { request }],
     [Notes.updateContent, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const MoveNoteResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/insertItem" }, { request }],
+    [Folder.insertItem, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });

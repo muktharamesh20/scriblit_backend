@@ -42,7 +42,6 @@ export const inclusions: Record<string, string> = {
   "/api/Folder/getFolderStructure":
     "allow anyone to get the folder structure for a user",
   "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
-  "/api/Folder/insertItem": "for now",
 };
 
 /**
@@ -62,6 +61,7 @@ export const exclusions: Array<string> = [
   "/api/Folder/deleteFolder", // Use Requesting syncs for authentication
   "/api/Notes/deleteNote", // Use Requesting syncs for authentication
   "/api/Notes/setTitle", // Use Requesting syncs for authentication
+  "/api/Folder/insertItem",
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
