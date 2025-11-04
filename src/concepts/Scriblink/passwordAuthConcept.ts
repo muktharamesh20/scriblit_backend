@@ -133,6 +133,14 @@ export default class PasswordAuthConcept {
   async _getUserFromToken(
     { authToken }: { authToken: string },
   ): Promise<{ user: User }[]> {
+    // Return empty if token is missing or invalid
+    if (
+      !authToken || typeof authToken !== "string" || authToken.trim() === ""
+    ) {
+      console.log("❌ Token missing or invalid format");
+      return [];
+    }
+
     // Strip "Bearer " prefix if present
     const token = authToken.startsWith("Bearer ")
       ? authToken.substring(7)

@@ -26,7 +26,6 @@
 
 export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
-  "/api/Folder/createFolder": "allow anyone to create a folder",
   "/api/Folder/_getFolderDetails":
     "allow anyone to get the details of a folder",
   "/api/Folder/isDescendant":
@@ -76,4 +75,5 @@ export const inclusions: Record<string, string> = {
 
 export const exclusions: Array<string> = [
   "/api/Notes/createNote",
+  "/api/Folder/createFolder",
 ];
