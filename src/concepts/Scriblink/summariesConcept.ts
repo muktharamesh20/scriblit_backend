@@ -353,6 +353,7 @@ export default class SummariesConcept {
         _id: item,
       });
       if (deleteResult.deletedCount === 1) {
+        console.log("✅ [deleteSummary] Summary deleted for item:", item);
         return {};
       } else if (deleteResult.deletedCount === 0) {
         return { error: `No summary found for item ${item} to delete.` };

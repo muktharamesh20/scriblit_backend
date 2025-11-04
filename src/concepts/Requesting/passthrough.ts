@@ -28,9 +28,6 @@ export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
   "/api/PasswordAuth/register": "allow anyone to register a user",
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
-  "/api/Folder/_getFolderDetails":
-    "allow anyone to get the details of a folder",
-  "/api/Notes/deleteNote": "allow anyone to delete a note",
   "/api/Notes/setTitle": "allow anyone to set the title of a note",
   "/api/Notes/updateContent": "allow anyone to update the content of a note",
   "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
@@ -38,7 +35,6 @@ export const inclusions: Record<string, string> = {
   "/api/Summaries/setSummary": "allow anyone to set a summary",
   "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
   "/api/Summaries/getSummary": "allow anyone to get a summary",
-  "/api/Summaries/deleteSummary": "allow anyone to delete a summary",
   "/api/Tags/addTag": "allow anyone to add a tag to an item",
   "/api/Tags/removeTagFromItem": "allow anyone to remove a tag from an item",
   "/api/Tags/_getTagsForItem": "allow anyone to get the tags for an item",
@@ -66,6 +62,7 @@ export const exclusions: Array<string> = [
   "/api/Folder/createFolder",
   "/api/Folder/moveFolder",
   "/api/Folder/deleteFolder", // Use Requesting syncs for authentication
+  "/api/Notes/deleteNote", // Use Requesting syncs for authentication
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
@@ -86,4 +83,6 @@ export const exclusions: Array<string> = [
   "/api/Tags/updateTags",
   "/api/Tags/_getItemsByTag",
   "/api/Tags/_getTagDetails",
+  "/api/Folder/_getFolderDetails",
+  "/api/Summaries/deleteSummary",
 ];
