@@ -160,7 +160,7 @@ export const MoveFolderRequest: Sync = ({
       authenticatedUser,
     );
   },
-  then: actions([Folder.moveFolder, { folderId, newParentId }]),
+  then: actions([Folder.moveFolder, { folderId, newParentId, userId: user }]),
 });
 
 /********************************* User Responses *********************************/

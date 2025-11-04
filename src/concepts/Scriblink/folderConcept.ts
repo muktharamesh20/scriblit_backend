@@ -166,7 +166,11 @@ export default class FolderConcept {
    *          If f1 is a new folder (not currently linked to any parent), it is just added to f2.
    */
   async moveFolder(
-    { folderId, newParentId }: { folderId: Folder; newParentId: Folder },
+    { folderId, newParentId, userId }: {
+      folderId: Folder;
+      newParentId: Folder;
+      userId: User;
+    },
   ): Promise<{ success: boolean } | { error: string }> {
     const f1 = await this.folders.findOne({ _id: folderId });
     const f2 = await this.folders.findOne({ _id: newParentId });
@@ -176,6 +180,18 @@ export default class FolderConcept {
     }
     if (!f2) {
       return { error: `New parent folder with ID ${newParentId} not found.` };
+    }
+
+    if (f1.owner !== userId) {
+      return {
+        error: `Folder with ID ${folderId} is not owned by the user.`,
+      };
+    }
+    if (f2.owner !== userId) {
+      return {
+        error:
+          `New parent folder with ID ${newParentId} is not owned by the user.`,
+      };
     }
 
     // Requirement: Both folders must have the same owner.
