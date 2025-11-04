@@ -283,6 +283,32 @@ export const SetTitleRequest: Sync = ({
   },
   then: actions([Notes.setTitle, { noteId, newTitle, user }]),
 });
+
+export const UpdateContentRequest: Sync = ({
+  request,
+  user,
+  noteId,
+  newContent,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/updateContent",
+    user,
+    noteId,
+    newContent,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.updateContent, { noteId, newContent, user }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -388,6 +414,20 @@ export const SetTitleResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
+
+export const UpdateContentResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, { path: "/Notes/updateContent", user }, {
+    request,
+  }], [Notes.updateContent, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -438,7 +478,13 @@ export const SetTitleResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-/**********************************System Errors **********************************/
+export const UpdateContentResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/updateContent" }, { request }],
+    [Notes.updateContent, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
 
 /*********************************Helper Functions **********************************/
 

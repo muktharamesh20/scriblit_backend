@@ -28,7 +28,6 @@ export const inclusions: Record<string, string> = {
   // Feel free to delete these example inclusions
   "/api/PasswordAuth/register": "allow anyone to register a user",
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
-  "/api/Notes/updateContent": "allow anyone to update the content of a note",
   "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
   "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
   "/api/Summaries/setSummary": "allow anyone to set a summary",
@@ -85,4 +84,5 @@ export const exclusions: Array<string> = [
   "/api/Tags/_getTagDetails",
   "/api/Folder/_getFolderDetails",
   "/api/Summaries/deleteSummary",
+  "/api/Notes/updateContent",
 ];
