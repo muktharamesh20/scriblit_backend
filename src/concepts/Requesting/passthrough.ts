@@ -30,7 +30,6 @@ export const inclusions: Record<string, string> = {
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
   "/api/Notes/getNoteDetails": "allow anyone to get the details of a note",
   "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
-  "/api/Summaries/setSummary": "allow anyone to set a summary",
   "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
   "/api/Summaries/getSummary": "allow anyone to get a summary",
   "/api/Tags/_getTagsForItem": "allow anyone to get the tags for an item",
@@ -64,6 +63,7 @@ export const exclusions: Array<string> = [
   "/api/Summaries/deleteSummary",
   "/api/Notes/updateContent",
   "/api/Tags/addTag",
+  "/api/Summaries/setSummary",
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
