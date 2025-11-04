@@ -71,6 +71,123 @@ export const InitializeNewlyCreatedNote: Sync = (
 
 /********************************** User Requests **********************************/
 
+export const CreateNoteRequest: Sync = ({
+  request,
+  user,
+  content,
+  folder,
+  title,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([
+    Requesting.request,
+    {
+      path: "/Notes/createNote",
+      user,
+      content,
+      folder,
+      title,
+      authToken,
+    },
+    { request },
+  ]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.createNote, { user, title, folder, content }]),
+});
+
+export const CreateFolderRequest: Sync = ({
+  request,
+  user,
+  title,
+  parent,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([
+    Requesting.request,
+    {
+      path: "/Folder/createFolder",
+      user,
+      title,
+      parent,
+      authToken,
+    },
+    { request },
+  ]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.createFolder, { user, title, parent }]),
+});
+
+/********************************* User Responses *********************************/
+
+export const CreateNoteResponse: Sync = ({
+  request,
+  note,
+  user,
+  accessToken,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/createNote", user }, { request }],
+    [Notes.createNote, {}, { note }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, note, accessToken }]),
+});
+
+export const CreateFolderResponse: Sync = ({
+  request,
+  folder,
+  user,
+  accessToken,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/createFolder", user }, { request }],
+    [Folder.createFolder, {}, { folder }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, folder, accessToken }]),
+});
+/********************************* User Errors **********************************/
+
+export const CreateNoteResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/createNote" }, { request }],
+    [Notes.createNote, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const CreateFolderResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/createFolder" }, { request }],
+    [Folder.createFolder, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+/**********************************System Errors **********************************/
+
+/*********************************Helper Functions **********************************/
+
 /**
  * Reusable authentication where clause for authenticated requests
  * Verifies token and ensures authenticated user matches requested user
@@ -121,113 +238,3 @@ const generateTokenForResponse = async (
   );
   return frames;
 };
-
-export const CreateNoteRequest: Sync = ({
-  request,
-  user,
-  content,
-  folder,
-  title,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Notes/createNote",
-      user,
-      content,
-      folder,
-      title,
-      authToken,
-    },
-    { request },
-  ]),
-  where: async (frames) => {
-    return await authenticateRequest(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-  },
-  then: actions([Notes.createNote, { user, title, folder, content }]),
-});
-
-export const CreateNoteResponse: Sync = ({
-  request,
-  note,
-  user,
-  accessToken,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/createNote", user }, { request }],
-    [Notes.createNote, {}, { note }],
-  ),
-  where: async (frames) => {
-    return await generateTokenForResponse(frames, user, accessToken);
-  },
-  then: actions([Requesting.respond, { request, note, accessToken }]),
-});
-
-export const CreateNoteResponseError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/createNote" }, { request }],
-    [Notes.createNote, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-export const CreateFolderRequest: Sync = ({
-  request,
-  user,
-  title,
-  parent,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([
-    Requesting.request,
-    {
-      path: "/Folder/createFolder",
-      user,
-      title,
-      parent,
-      authToken,
-    },
-    { request },
-  ]),
-  where: async (frames) => {
-    return await authenticateRequest(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-  },
-  then: actions([Folder.createFolder, { user, title, parent }]),
-});
-
-export const CreateFolderResponse: Sync = ({
-  request,
-  folder,
-  user,
-  accessToken,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Folder/createFolder", user }, { request }],
-    [Folder.createFolder, {}, { folder }],
-  ),
-  where: async (frames) => {
-    return await generateTokenForResponse(frames, user, accessToken);
-  },
-  then: actions([Requesting.respond, { request, folder, accessToken }]),
-});
-
-export const CreateFolderResponseError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Folder/createFolder" }, { request }],
-    [Folder.createFolder, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
