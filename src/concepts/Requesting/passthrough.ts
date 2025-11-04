@@ -34,7 +34,6 @@ export const inclusions: Record<string, string> = {
   "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
   "/api/Summaries/getSummary": "allow anyone to get a summary",
   "/api/Tags/addTag": "allow anyone to add a tag to an item",
-  "/api/Tags/removeTagFromItem": "allow anyone to remove a tag from an item",
   "/api/Tags/_getTagsForItem": "allow anyone to get the tags for an item",
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
@@ -62,6 +61,7 @@ export const exclusions: Array<string> = [
   "/api/Notes/deleteNote", // Use Requesting syncs for authentication
   "/api/Notes/setTitle", // Use Requesting syncs for authentication
   "/api/Folder/insertItem",
+  "/api/Tags/removeTagFromItem",
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",

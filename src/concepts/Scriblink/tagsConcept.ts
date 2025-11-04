@@ -144,7 +144,7 @@ export default class TagConcept {
       { $pull: { items: item } }, // Update: Remove the item from the array
     );
 
-    if (updateResult.modifiedCount === 1) {
+    if (updateResult.modifiedCount >= 1) {
       // Item was successfully removed.
       return {};
     } else if (updateResult.matchedCount === 0) {

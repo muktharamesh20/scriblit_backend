@@ -371,6 +371,32 @@ export const MoveNoteRequest: Sync = ({
   then: actions([Folder.insertItem, { item, folder }]),
 });
 
+export const RemoveTagFromItemRequest: Sync = ({
+  request,
+  user,
+  tag,
+  item,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/removeTagFromItem",
+    user,
+    tag,
+    item,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Tags.removeTagFromItem, { tag, item }]),
+});
+
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -504,6 +530,22 @@ export const MoveNoteResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
+
+export const RemoveTagFromItemResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([
+    Requesting.request,
+    { path: "/Tags/removeTagFromItem", user },
+    { request },
+  ], [Tags.removeTagFromItem, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -566,6 +608,14 @@ export const MoveNoteResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Folder/insertItem" }, { request }],
     [Folder.insertItem, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const RemoveTagFromItemResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Tags/removeTagFromItem" }, { request }],
+    [Tags.removeTagFromItem, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
