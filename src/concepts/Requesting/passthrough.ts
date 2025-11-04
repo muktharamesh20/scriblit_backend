@@ -61,6 +61,9 @@ export const exclusions: Array<string> = [
   "/api/Notes/setTitle", // Use Requesting syncs for authentication
   "/api/Folder/insertItem",
   "/api/Tags/removeTagFromItem",
+  "/api/Summaries/deleteSummary",
+  "/api/Notes/updateContent",
+  "/api/Tags/addTag",
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
@@ -82,7 +85,4 @@ export const exclusions: Array<string> = [
   "/api/Tags/_getItemsByTag",
   "/api/Tags/_getTagDetails",
   "/api/Folder/_getFolderDetails",
-  "/api/Summaries/deleteSummary",
-  "/api/Notes/updateContent",
-  "/api/Tags/addTag",
 ];
