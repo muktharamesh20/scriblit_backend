@@ -5,6 +5,7 @@
 
 import { Folder, Notes, PasswordAuth, Requesting, Summaries } from "@concepts";
 import { actions, Frames, Sync } from "@engine";
+import { ID } from "@utils/types.ts";
 
 /********************************** System Syncs **********************************/
 
@@ -69,7 +70,110 @@ export const InitializeNewlyCreatedNote: Sync = (
   ),
 });
 
+export const deleteChildFolders: Sync = ({
+  folder,
+  childFolder,
+}) => ({
+  when: actions([
+    Folder.deleteFolder,
+    { f: folder },
+    {},
+  ]),
+  where: async (frames) => {
+    const result = new Frames();
+    for (const frame of frames) {
+      const folderId = frame[folder] as ID;
+      const childrenResult = await Folder._getFolderChildren({
+        folderId,
+      });
+      if ("error" in childrenResult) {
+        continue; // Skip if error
+      }
+      // Expand each child folder into a separate frame
+      for (const childId of childrenResult) {
+        result.push({
+          ...frame,
+          [childFolder]: childId,
+        });
+      }
+    }
+    return result;
+  },
+  then: actions([
+    Folder.deleteFolder,
+    { f: childFolder },
+  ]),
+});
+
+export const deleteChildNotes: Sync = ({
+  user,
+  folder,
+  note,
+  deletedItems,
+  owner,
+}) => ({
+  when: actions([
+    Folder.deleteFolder,
+    { f: folder },
+    { deletedItems, owner },
+  ]),
+  where: (frames) => {
+    const result = new Frames();
+    for (const frame of frames) {
+      const items = frame[deletedItems] as ID[];
+      const folderOwner = frame[owner] as ID;
+
+      // Filter out error cases (handled by error sync)
+      if (!Array.isArray(items)) {
+        continue;
+      }
+
+      // Expand each item/note into a separate frame with the owner
+      for (const itemId of items) {
+        result.push({
+          ...frame,
+          [note]: itemId,
+          [user]: folderOwner,
+        });
+      }
+    }
+    return result;
+  },
+  then: actions([
+    Notes.deleteNote,
+    { noteId: note, user },
+  ]),
+});
+
 /********************************** User Requests **********************************/
+
+export const DeleteFolderRequest: Sync = ({
+  request,
+  user,
+  folderId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([
+    Requesting.request,
+    {
+      path: "/Folder/deleteFolder",
+      user,
+      folderId,
+      authToken,
+    },
+    { request },
+  ]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.deleteFolder, { f: folderId }]),
+});
 
 export const CreateNoteRequest: Sync = ({
   request,
@@ -165,6 +269,30 @@ export const MoveFolderRequest: Sync = ({
 
 /********************************* User Responses *********************************/
 
+export const DeleteFolderResponse: Sync = ({
+  request,
+  folderId,
+  user,
+  accessToken,
+  deletedFolders,
+  deletedItems,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/deleteFolder", user, folderId }, {
+      request,
+    }],
+    [Folder.deleteFolder, { f: folderId }, { deletedFolders, deletedItems }],
+  ),
+  where: async (frames) => {
+    // Folder.deleteFolder now returns { deletedFolders, deletedItems, owner } on success
+    // or { error: string } on failure
+    // Error cases are handled by DeleteFolderResponseError which matches on { error }
+    // Success cases will have deletedFolders and deletedItems arrays
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
+
 export const CreateNoteResponse: Sync = ({
   request,
   note,
@@ -234,6 +362,14 @@ export const MoveFolderResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Folder/moveFolder" }, { request }],
     [Folder.moveFolder, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const DeleteFolderResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/deleteFolder" }, { request }],
+    [Folder.deleteFolder, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });

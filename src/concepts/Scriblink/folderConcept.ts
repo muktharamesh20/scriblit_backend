@@ -362,17 +362,33 @@ export default class FolderConcept {
    * Action: Deletes a folder and all its contents (subfolders and their contents).
    * @param f The ID of the folder to delete.
    * @effects Deletes the specified folder, all its child folders, and all items contained within them.
+   * @returns Information about deleted folders and items before deletion
    */
   async deleteFolder(
     { f }: { f: Folder },
-  ): Promise<Item[] | { error: string }> {
+  ): Promise<
+    | { deletedFolders: Item[]; deletedItems: Item[]; owner: User }
+    | { error: string }
+  > {
     const targetFolder = await this.folders.findOne({ _id: f });
     if (!targetFolder) {
       return { error: `Folder with ID ${f} not found.` };
     }
 
+    // Collect all items (notes) from the folder and its descendants before deletion
+    const allItems = new Set<Item>();
     const folderIdsToDelete = new Set<Folder>();
     await this.collectDescendants(f, folderIdsToDelete); // Collect f and all its children/descendants
+
+    // Collect items from all folders that will be deleted
+    for (const folderId of folderIdsToDelete) {
+      const folder = await this.folders.findOne({ _id: folderId });
+      if (folder && folder.elements) {
+        for (const item of folder.elements) {
+          allItems.add(item);
+        }
+      }
+    }
 
     // Before deleting the folder itself, remove its ID from its parent's 'folders' array.
     // This assumes a folder has at most one parent due to how `createFolder` and `moveFolder` link folders.
@@ -387,7 +403,11 @@ export default class FolderConcept {
     });
 
     if (deleteResult.deletedCount > 0) {
-      return Array.from(folderIdsToDelete).map((id) => id as Item);
+      return {
+        deletedFolders: Array.from(folderIdsToDelete).map((id) => id as Item),
+        deletedItems: Array.from(allItems),
+        owner: targetFolder.owner,
+      };
     }
     return { error: `Failed to delete folder ${f} or its contents.` };
   }

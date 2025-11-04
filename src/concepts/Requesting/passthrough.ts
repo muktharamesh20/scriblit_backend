@@ -30,7 +30,6 @@ export const inclusions: Record<string, string> = {
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
   "/api/Folder/_getFolderDetails":
     "allow anyone to get the details of a folder",
-  "/api/Folder/deleteFolder": "allow anyone to delete a folder",
   "/api/Notes/deleteNote": "allow anyone to delete a note",
   "/api/Notes/setTitle": "allow anyone to set the title of a note",
   "/api/Notes/updateContent": "allow anyone to update the content of a note",
@@ -49,6 +48,7 @@ export const inclusions: Record<string, string> = {
   "/api/Folder/getFolderStructure":
     "allow anyone to get the folder structure for a user",
   "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
+  "/api/Folder/insertItem": "for now",
 };
 
 /**
@@ -65,9 +65,9 @@ export const exclusions: Array<string> = [
   "/api/Notes/createNote",
   "/api/Folder/createFolder",
   "/api/Folder/moveFolder",
+  "/api/Folder/deleteFolder", // Use Requesting syncs for authentication
 
   // passthrough routes that are not public
-  "/api/Folder/insertItem",
   "/api/Notes/_getNoteDetails",
   "/api/Folder/initializeFolder",
   "/api/Folder/isDescendant",
