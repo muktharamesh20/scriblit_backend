@@ -30,7 +30,6 @@ export const inclusions: Record<string, string> = {
     "allow anyone to get the details of a folder",
   "/api/Folder/isDescendant":
     "allow anyone to check if a folder is a descendant of another folder",
-  "/api/Folder/insertItem": "allow anyone to insert an item into a folder",
   "/api/Folder/collectDescendants":
     "allow anyone to collect the descendants of a folder",
   "/api/Folder/deleteFolder": "allow anyone to delete a folder",
@@ -56,7 +55,7 @@ export const inclusions: Record<string, string> = {
   "/api/Tags/_getTagDetails": "allow anyone to get the details of a tag",
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
-    "allow anyone to get the root folder id for a user",
+    "allow anyone to get root folder id because it gives no info to the requester",
   "/api/Folder/getFolderStructure":
     "allow anyone to get the folder structure for a user",
   "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
