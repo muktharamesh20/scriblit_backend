@@ -150,12 +150,36 @@ export const CreateNoteRequest: Sync = ({
   then: actions([Notes.createNote, { user, title, folder, content }]),
 });
 
-export const CreateNoteResponse: Sync = ({ request, note }) => ({
+export const CreateNoteResponse: Sync = ({
+  request,
+  note,
+  user,
+  accessToken,
+}) => ({
   when: actions(
-    [Requesting.request, { path: "/Notes/createNote" }, { request }],
+    [Requesting.request, { path: "/Notes/createNote", user }, { request }],
     [Notes.createNote, {}, { note }],
   ),
-  then: actions([Requesting.respond, { request, note }]),
+  where: async (frames) => {
+    // Generate a new access token for the user
+    console.log(
+      "🔍 CreateNoteResponse where - generating token, frames count:",
+      frames.length,
+    );
+    frames = await frames.query(
+      PasswordAuth._generateNewAccessToken,
+      { user },
+      { accessToken },
+    );
+    console.log("🔍 After token query, frames count:", frames.length);
+    if (frames.length > 0) {
+      console.log("✅ Token generated and bound to accessToken");
+    } else {
+      console.log("❌ Token generation failed - no frames returned");
+    }
+    return frames;
+  },
+  then: actions([Requesting.respond, { request, note, accessToken }]),
 });
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({

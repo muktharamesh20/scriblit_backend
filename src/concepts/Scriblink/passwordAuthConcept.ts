@@ -9,8 +9,7 @@ type User = ID;
 
 const JWT_SECRET = Deno.env.get("JWT_SECRET") ||
   "test";
-const ACCESS_TOKEN_EXPIRES_IN = "1m";
-const REFRESH_TOKEN_EXPIRES_IN = "1m";
+const ACCESS_TOKEN_EXPIRES_IN = "30s"; // 30 seconds for debugging
 
 interface AuthUserDocument {
   _id: User;
@@ -37,12 +36,6 @@ async function comparePassword(
 function generateAccessToken(userId: User, username: string): string {
   return jwt.sign({ userId, username, type: "access" }, JWT_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
-  });
-}
-
-function generateRefreshToken(userId: User, username: string): string {
-  return jwt.sign({ userId, username, type: "refresh" }, JWT_SECRET, {
-    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
   });
 }
 
@@ -94,7 +87,7 @@ export default class PasswordAuthConcept {
   async authenticate(
     { username, password }: { username: string; password: string },
   ): Promise<
-    | { accessToken: string; refreshToken: string; user: User }
+    | { accessToken: string; user: User }
     | { error: string }
   > {
     const authUser = await this.users.findOne({ username });
@@ -112,8 +105,7 @@ export default class PasswordAuthConcept {
     }
 
     const accessToken = generateAccessToken(authUser._id, authUser.username);
-    const refreshToken = generateRefreshToken(authUser._id, authUser.username);
-    return { accessToken, refreshToken, user: authUser._id };
+    return { accessToken, user: authUser._id };
   }
 
   async refresh(
@@ -170,5 +162,28 @@ export default class PasswordAuthConcept {
 
     console.log("✅ Token verified, user:", decoded.userId);
     return [{ user: decoded.userId }];
+  }
+
+  /**
+   * Query: Generates a new access token for a user
+   * @param user The user ID to generate a token for
+   * @returns An array with a single object containing the new access token
+   */
+  async _generateNewAccessToken(
+    { user }: { user: User },
+  ): Promise<{ accessToken: string }[]> {
+    console.log("🔍 Generating new access token for user:", user);
+    const authUser = await this.users.findOne({ _id: user });
+    if (!authUser) {
+      console.log("❌ User not found for token generation");
+      return [];
+    }
+
+    const accessToken = generateAccessToken(authUser._id, authUser.username);
+    console.log(
+      "✅ Generated new access token:",
+      accessToken.substring(0, 20) + "...",
+    );
+    return [{ accessToken }];
   }
 }
