@@ -3,7 +3,14 @@
  * Coordinates actions between authentication, folders, notes, tags, and summaries
  */
 
-import { Folder, Notes, PasswordAuth, Requesting, Summaries } from "@concepts";
+import {
+  Folder,
+  Notes,
+  PasswordAuth,
+  Requesting,
+  Summaries,
+  Tags,
+} from "@concepts";
 import { actions, Frames, Sync } from "@engine";
 import { ID } from "@utils/types.ts";
 
@@ -37,6 +44,34 @@ export const RemoveNoteFromFolderOnDeletion: Sync = ({ noteId, user }) => ({
     Folder.deleteItem,
     { item: noteId },
   ]),
+});
+
+/**
+ * When a note is deleted, remove any tags it's attached to
+ */
+export const RemoveTagsFromNoteOnDeletion: Sync = (
+  { noteId, user, tagId },
+) => ({
+  when: actions(
+    [Notes.deleteNote, { noteId, user }, {}],
+  ),
+  where: async (frames) => {
+    const result = new Frames();
+    for (const frame of frames) {
+      const u = frame[user] as ID;
+      const itemId = frame[noteId] as ID;
+      const tagRecords = await Tags._getTagsForItem({ user: u, item: itemId });
+      if (Array.isArray(tagRecords)) {
+        for (const rec of tagRecords) {
+          result.push({ ...frame, [tagId]: rec.tagId });
+        }
+      }
+    }
+    return result;
+  },
+  then: actions(
+    [Tags.removeTagFromItem, { tag: tagId, item: noteId }],
+  ),
 });
 
 /**
