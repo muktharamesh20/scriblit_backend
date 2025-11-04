@@ -49,6 +49,8 @@ export const inclusions: Record<string, string> = {
   "/api/Notes/getNotesByUser": "allow anyone to get the notes by a user",
   "/api/PasswordAuth/register": "allow anyone to register a user",
   "/api/PasswordAuth/authenticate": "allow anyone to authenticate a user",
+  "/api/PasswordAuth/refresh":
+    "allow authenticated users to refresh their access token",
   "/api/Summaries/setSummary": "allow anyone to set a summary",
   "/api/Summaries/setSummaryWithAI": "allow anyone to set a summary with AI",
   "/api/Summaries/validateSummary": "allow anyone to validate a summary",
@@ -69,7 +71,6 @@ export const inclusions: Record<string, string> = {
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
     "allow anyone to get the root folder id for a user",
-  "/api/Notes/createNote": "allow anyone to create a note",
   "/api/Folder/getFolderStructure":
     "allow anyone to get the folder structure for a user",
   "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
@@ -86,23 +87,5 @@ export const inclusions: Record<string, string> = {
  */
 
 export const exclusions: Array<string> = [
-  // Feel free to delete these example exclusions
-  "/api/Request/updateNote",
-  "/api/Request/createFolder",
-  "/api/Request/moveFolder",
-  "/api/Request/moveNote",
-  "/api/Request/tagItem",
-  "/api/Request/untagItem",
-  "/api/Request/generateSummary",
-  //"/api/Request/getUserNotes",
-  "/api/Request/getFolderStructure",
-  "/api/Request/deleteFolder",
-  "/api/Request/deleteNote",
-  "/api/Request/getItemTags",
-  "/api/Request/getUserTags",
-  "/api/Request/setSummary",
-  "/api/Request/getSummary",
-  "/api/Request/deleteSummary",
-  "/api/Request/getUserSummaries",
-  "/api/Request/collectDescendants",
+  "/api/Notes/createNote",
 ];

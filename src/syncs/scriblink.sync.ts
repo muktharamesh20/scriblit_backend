@@ -3,16 +3,8 @@
  * Coordinates actions between authentication, folders, notes, tags, and summaries
  */
 
-import {
-  Folder,
-  Notes,
-  PasswordAuth,
-  Request,
-  Requesting,
-  Summaries,
-  Tags,
-} from "@concepts";
-import { actions, Sync } from "@engine";
+import { Folder, Notes, PasswordAuth, Requesting, Summaries } from "@concepts";
+import { actions, Frames, Sync } from "@engine";
 
 /********************************** System Syncs **********************************/
 
@@ -59,9 +51,6 @@ export const DeleteSummaryOnItemDeletion: Sync = ({ item }) => ({
   ]),
 });
 
-/********************************** User Requests **********************************/
-
-/** when a note is created, initialize it by adding it to the correct folder */
 export const InitializeNewlyCreatedNote: Sync = (
   {
     user,
@@ -80,81 +69,169 @@ export const InitializeNewlyCreatedNote: Sync = (
   ),
 });
 
-export const CreateNoteResponse: Sync = (
-  { folder, note },
-) => ({
-  when: actions(
-    [Notes.createNote, { folder }, { note }],
-  ),
-  then: actions([Requesting.respond, { folder, note: note }]),
-});
+/********************************** User Requests **********************************/
 
-export const CreateFolderRequest: Sync = (
-  { request, user, title, parentFolderId },
-) => ({
+export const CreateNoteRequest: Sync = ({
+  request,
+  user,
+  content,
+  folder,
+  title,
+  authToken,
+  authenticatedUser,
+}) => ({
   when: actions([
     Requesting.request,
-    { path: "/Scriblink/createFolder", user, title, parentFolderId },
+    {
+      path: "/Notes/createNote",
+      user,
+      content,
+      folder,
+      title,
+      authToken,
+    },
     { request },
   ]),
-  then: actions([Folder.createFolder, { user, title, parentFolderId }]),
+  where: async (frames) => {
+    const originalFrame = frames[0];
+    const requestUser = originalFrame[user];
+    const token = originalFrame[authToken];
+
+    console.log("🔍 CreateNoteRequest where clause:", {
+      requestUser,
+      hasToken: !!token,
+    });
+
+    // Verify the auth token and get the authenticated user
+    // The query returns { user: ... }, so we map it to authenticatedUser
+    frames = await frames.query(
+      PasswordAuth._getUserFromToken,
+      { authToken },
+      { user: authenticatedUser },
+    );
+
+    console.log("🔍 After token query:", {
+      framesCount: frames.length,
+      frames: frames.map(($) => ({
+        authenticatedUser: $[authenticatedUser],
+        requestUser: $[user],
+      })),
+    });
+
+    // If query returned empty (invalid token), return empty frames
+    // This prevents the sync from firing, allowing auth error sync to handle it
+    if (frames.length === 0) {
+      console.log("❌ Token query returned empty - auth failed");
+      return new Frames();
+    }
+
+    // Filter to ensure the authenticated user matches the user specified in the request
+    const matchingFrames = frames.filter(($) => {
+      const authUser = $[authenticatedUser];
+      const reqUser = $[user];
+      const matches = authUser === reqUser;
+      console.log("🔍 User comparison:", {
+        authenticatedUser: authUser,
+        requestUser: reqUser,
+        matches,
+        authUserType: typeof authUser,
+        reqUserType: typeof reqUser,
+      });
+      return matches;
+    });
+
+    console.log("🔍 Filtered frames:", {
+      originalCount: frames.length,
+      matchingCount: matchingFrames.length,
+    });
+
+    return matchingFrames;
+  },
+  then: actions([Notes.createNote, { user, title, folder, content }]),
 });
 
-export const CreateFolderResponse: Sync = ({ request, folder }) => ({
+export const CreateNoteResponse: Sync = ({ request, note }) => ({
   when: actions(
-    [Requesting.request, { path: "/Scriblink/createFolder" }, { request }],
-    [Folder.createFolder, {}, { folder }],
+    [Requesting.request, { path: "/Notes/createNote" }, { request }],
+    [Notes.createNote, {}, { note }],
   ),
-  then: actions([Requesting.respond, { request, folder }]),
+  then: actions([Requesting.respond, { request, note }]),
 });
 
-export const DeleteNoteRequest: Sync = ({ request, user, noteId }) => ({
+export const CreateNoteResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/createNote" }, { request }],
+    [Notes.createNote, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const CreateNoteAuthError: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
   when: actions([
     Requesting.request,
-    { path: "/Scriblink/deleteNote", user, noteId },
+    {
+      path: "/Notes/createNote",
+      user,
+      authToken,
+    },
     { request },
   ]),
-  then: actions([Notes.deleteNote, { user, noteId }]),
-});
+  where: async (frames) => {
+    // Save original frame
+    const originalFrame = frames[0];
 
-export const DeleteNoteResponse: Sync = ({ request }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Scriblink/deleteNote" }, { request }],
-    [Notes.deleteNote, {}, {}],
-  ),
-  then: actions([Requesting.respond, { request }]),
-});
+    console.log("🔍 CreateNoteAuthError where clause - checking auth");
 
-export const DeleteSummaryRequest: Sync = ({ request, user, noteId }) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/Scriblink/deleteSummary", user, noteId },
-    { request },
+    // Check if auth fails
+    // The query returns { user: ... }, so we map it to authenticatedUser
+    frames = await frames.query(
+      PasswordAuth._getUserFromToken,
+      { authToken },
+      { user: authenticatedUser },
+    );
+
+    console.log("🔍 AuthError check - after query:", {
+      framesCount: frames.length,
+    });
+
+    // If token is invalid or user doesn't match, return error frame
+    if (frames.length === 0) {
+      console.log("❌ AuthError: Token query failed - returning error frame");
+      return new Frames(originalFrame);
+    }
+
+    const matchingFrames = frames.filter(($) => {
+      const authUser = $[authenticatedUser];
+      const reqUser = $[user];
+      const matches = authUser === reqUser;
+      console.log("🔍 AuthError - User comparison:", {
+        authenticatedUser: authUser,
+        requestUser: reqUser,
+        matches,
+      });
+      return matches;
+    });
+
+    if (matchingFrames.length === 0) {
+      console.log("❌ AuthError: User mismatch - returning error frame");
+      return new Frames(originalFrame);
+    }
+
+    // If auth succeeds, return empty to prevent this error sync from firing
+    console.log("✅ AuthError: Auth succeeded - returning empty frames");
+    return new Frames();
+  },
+  then: actions([
+    Requesting.respond,
+    {
+      request,
+      error:
+        "Invalid or expired access token, or authenticated user does not match requested user.",
+    },
   ]),
-  then: actions([Summaries.deleteSummary, { user, noteId }]),
-});
-
-export const DeleteSummaryResponse: Sync = ({ request }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Scriblink/deleteSummary" }, { request }],
-    [Summaries.deleteSummary, {}, {}],
-  ),
-  then: actions([Requesting.respond, { request }]),
-});
-
-export const DeleteFolderRequest: Sync = ({ request, user, folderId }) => ({
-  when: actions([
-    Requesting.request,
-    { path: "/Scriblink/deleteFolder", user, folderId },
-    { request },
-  ]),
-  then: actions([Folder.deleteFolder, { user, folderId }]),
-});
-
-export const DeleteFolderResponse: Sync = ({ request }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Scriblink/deleteFolder" }, { request }],
-    [Folder.deleteFolder, {}, {}],
-  ),
-  then: actions([Requesting.respond, { request }]),
 });
