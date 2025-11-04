@@ -13,7 +13,6 @@ import PasswordAuthConcept from "./Scriblink/passwordAuthConcept.ts";
 import NotesConcept from "./Scriblink/notesConcept.ts";
 import TagsConcept from "./Scriblink/tagsConcept.ts";
 import FolderConcept from "./Scriblink/folderConcept.ts";
-import RequestConcept from "./Scriblink/requestConcept.ts";
 
 export type { default as RequestingConcept } from "./Requesting/RequestingConcept.ts";
 export type { default as SummariesConcept } from "./Scriblink/summariesConcept.ts";
@@ -21,15 +20,15 @@ export type { default as PasswordAuthConcept } from "./Scriblink/passwordAuthCon
 export type { default as NotesConcept } from "./Scriblink/notesConcept.ts";
 export type { default as TagsConcept } from "./Scriblink/tagsConcept.ts";
 export type { default as FolderConcept } from "./Scriblink/folderConcept.ts";
-export type { default as RequestConcept } from "./Scriblink/requestConcept.ts";
 
 // Initialize the database connection
 export const [db, client] = await getDb();
 
 export const Requesting = Engine.instrumentConcept(new RequestingConcept(db));
 export const Summaries = Engine.instrumentConcept(new SummariesConcept(db));
-export const PasswordAuth = Engine.instrumentConcept(new PasswordAuthConcept(db));
+export const PasswordAuth = Engine.instrumentConcept(
+  new PasswordAuthConcept(db),
+);
 export const Notes = Engine.instrumentConcept(new NotesConcept(db));
 export const Tags = Engine.instrumentConcept(new TagsConcept(db));
 export const Folder = Engine.instrumentConcept(new FolderConcept(db));
-export const Request = Engine.instrumentConcept(new RequestConcept(db));
