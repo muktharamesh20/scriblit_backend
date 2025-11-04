@@ -397,6 +397,31 @@ export const RemoveTagFromItemRequest: Sync = ({
   then: actions([Tags.removeTagFromItem, { tag, item }]),
 });
 
+export const AddTagToItemRequest: Sync = ({
+  request,
+  user,
+  label,
+  item,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/addTagToItem",
+    user,
+    label,
+    item,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Tags.addTag, { user, label, item }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -546,6 +571,20 @@ export const RemoveTagFromItemResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
+
+export const AddTagToItemResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, { path: "/Tags/addTagToItem", user }, {
+    request,
+  }], [Tags.addTag, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -616,6 +655,14 @@ export const RemoveTagFromItemResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Tags/removeTagFromItem" }, { request }],
     [Tags.removeTagFromItem, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const AddTagToItemResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Tags/addTagToItem" }, { request }],
+    [Tags.addTag, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
