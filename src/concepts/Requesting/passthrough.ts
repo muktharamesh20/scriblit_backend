@@ -33,8 +33,6 @@ export const inclusions: Record<string, string> = {
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
     "allow anyone to get root folder id because it gives no info to the requester",
-  "/api/Folder/getFolderStructure":
-    "allow anyone to get the folder structure for a user",
   "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
 };
 
