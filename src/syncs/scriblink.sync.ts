@@ -485,6 +485,7 @@ export const GetSummaryRequest: Sync = ({
     path: "/Summaries/getSummary",
     user,
     item,
+    authToken,
   }, {
     request,
   }]),
@@ -497,6 +498,30 @@ export const GetSummaryRequest: Sync = ({
     );
   },
   then: actions([Summaries.getSummary, { user, item }]),
+});
+
+export const GetNoteDetailsRequest: Sync = ({
+  request,
+  user,
+  noteId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getNoteDetails",
+    user,
+    noteId,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNoteDetails, { user, noteId }]),
 });
 /********************************* User Responses *********************************/
 
@@ -705,6 +730,24 @@ export const GetSummaryResponse: Sync = ({
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
 
+export const GetNoteDetailsResponse: Sync = ({
+  request,
+  user,
+  noteId,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getNoteDetails",
+    user,
+    noteId,
+  }, {
+    request,
+  }], [Notes.getNoteDetails, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -795,6 +838,13 @@ export const GetSummaryResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+export const GetNoteDetailsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getNoteDetails" }, { request }],
+    [Notes.getNoteDetails, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
 /*********************************Helper Functions **********************************/
 
 /**
