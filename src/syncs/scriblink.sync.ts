@@ -1214,6 +1214,142 @@ export const GenerateSummaryGetError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+/********************************* Get User Notes System Sync **********************************/
+/**
+ * System sync that chains: getNotesByUser -> getAllFolders -> getAllUserTags (if needed)
+ * Then processes the data to map notes to folders and filter by folderId/tagLabel
+ */
+
+export const GetUserNotesRequest: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getUserNotes",
+    user,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNotesByUser, { ownerId: user }, {}]),
+});
+
+export const GetUserNotesChainToFolders: Sync = ({
+  request,
+  user,
+  notes,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+  ),
+  then: actions([Folder.getAllFolders, { user }, {}]),
+});
+
+export const GetUserNotesChainToTags: Sync = ({
+  request,
+  user,
+  notes,
+  folders,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+    [Folder.getAllFolders, {}, { folders }],
+  ),
+  then: actions([Tags.getAllUserTags, { user }, {}]),
+});
+
+export const GetUserNotesResponse: Sync = ({
+  request,
+  user,
+  notes,
+  folders,
+  tags,
+  folderId,
+  tagLabel,
+  accessToken,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+    [Folder.getAllFolders, {}, { folders }],
+    [Tags.getAllUserTags, {}, { tags }],
+  ),
+  where: async (frames) => {
+    // Generate token
+    frames = await generateTokenForResponse(frames, user, accessToken);
+
+    // Process notes with folder mapping - frontend will handle filtering
+    const $ = frames[0];
+    if ($) {
+      const notesArray = $[notes];
+      const foldersArray = $[folders];
+
+      // Build note-to-folder mapping
+      const noteToFolderMap = new Map();
+      if (Array.isArray(foldersArray)) {
+        for (const folder of foldersArray) {
+          if (Array.isArray(folder.elements)) {
+            for (const noteId of folder.elements) {
+              noteToFolderMap.set(noteId, folder._id);
+            }
+          }
+        }
+      }
+
+      // Augment notes with folderId - return ALL notes, frontend handles filtering
+      const processedNotes = Array.isArray(notesArray)
+        ? notesArray.map((note) => ({
+          ...note,
+          folderId: noteToFolderMap.get(note._id) || null,
+        }))
+        : [];
+
+      // Replace notes symbol with processed notes
+      frames = frames.map(($) => {
+        const newFrame = { ...$, [notes]: processedNotes };
+        return newFrame;
+      });
+    }
+
+    return frames;
+  },
+  then: actions([Requesting.respond, { request, notes, accessToken }]),
+});
+
+export const GetUserNotesResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Notes.getNotesByUser, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetUserNotesFoldersError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Folder.getAllFolders, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetUserNotesTagsError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Tags.getAllUserTags, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 /*********************************Helper Functions **********************************/
 
 /**
