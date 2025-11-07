@@ -449,6 +449,30 @@ export const SetSummaryRequest: Sync = ({
   then: actions([Summaries.setSummary, { user, summary, item }]),
 });
 
+export const SetSummaryWithAIRequest: Sync = ({
+  request,
+  user,
+  text,
+  item,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Summaries/setSummaryWithAI",
+    user,
+    text,
+    item,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Summaries.setSummaryWithAI, { user, text, item }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -621,6 +645,21 @@ export const SetSummaryResponse: Sync = ({
   when: actions([Requesting.request, { path: "/Summaries/setSummary", user }, {
     request,
   }], [Summaries.setSummary, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
+
+export const SetSummaryWithAIResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Summaries/setSummaryWithAI",
+    user,
+  }, { request }]),
   where: async (frames) => {
     return await generateTokenForResponse(frames, user, accessToken);
   },
