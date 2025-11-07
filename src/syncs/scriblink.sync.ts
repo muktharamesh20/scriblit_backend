@@ -14,7 +14,10 @@ import {
 import { actions, Frames, Sync } from "@engine";
 import { ID } from "@utils/types.ts";
 
+/***********************************************************************************/
 /********************************** System Syncs **********************************/
+/***********************************************************************************/
+/***********************************************************************************/
 
 /**
  * When a user is registered, automatically create their root folder
@@ -153,8 +156,251 @@ export const deleteChildNotes: Sync = ({
   ]),
 });
 
+/********************************* Get User Notes System Sync **********************************/
+/**
+ * System sync that chains: getNotesByUser -> getAllFolders -> getAllUserTags (if needed)
+ * Then processes the data to map notes to folders and filter by folderId/tagLabel
+ */
+
+export const GetUserNotesRequest: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getUserNotes",
+    user,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNotesByUser, { ownerId: user }, {}]),
+});
+
+export const GetUserNotesChainToFolders: Sync = ({
+  request,
+  user,
+  notes,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+  ),
+  then: actions([Folder.getAllFolders, { user }, {}]),
+});
+
+export const GetUserNotesChainToTags: Sync = ({
+  request,
+  user,
+  notes,
+  folders,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+    [Folder.getAllFolders, {}, { folders }],
+  ),
+  then: actions([Tags.getAllUserTags, { user }, {}]),
+});
+
+export const GetUserNotesResponse: Sync = ({
+  request,
+  user,
+  notes,
+  folders,
+  tags,
+  folderId,
+  tagLabel,
+  accessToken,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
+    [Notes.getNotesByUser, {}, { notes }],
+    [Folder.getAllFolders, {}, { folders }],
+    [Tags.getAllUserTags, {}, { tags }],
+  ),
+  where: async (frames) => {
+    // Generate token
+    frames = await generateTokenForResponse(frames, user, accessToken);
+
+    // Process notes with folder mapping - frontend will handle filtering
+    const $ = frames[0];
+    if ($) {
+      const notesArray = $[notes];
+      const foldersArray = $[folders];
+
+      // Build note-to-folder mapping
+      const noteToFolderMap = new Map();
+      if (Array.isArray(foldersArray)) {
+        for (const folder of foldersArray) {
+          if (Array.isArray(folder.elements)) {
+            for (const noteId of folder.elements) {
+              noteToFolderMap.set(noteId, folder._id);
+            }
+          }
+        }
+      }
+
+      // Augment notes with folderId - return ALL notes, frontend handles filtering
+      const processedNotes = Array.isArray(notesArray)
+        ? notesArray.map((note) => ({
+          ...note,
+          folderId: noteToFolderMap.get(note._id) || null,
+        }))
+        : [];
+
+      // Replace notes symbol with processed notes
+      frames = frames.map(($) => {
+        const newFrame = { ...$, [notes]: processedNotes };
+        return newFrame;
+      });
+    }
+
+    return frames;
+  },
+  then: actions([Requesting.respond, { request, notes, accessToken }]),
+});
+
+export const GetUserNotesResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Notes.getNotesByUser, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetUserNotesFoldersError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Folder.getAllFolders, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetUserNotesTagsError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
+    [Tags.getAllUserTags, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+/********************************* Generate Summary System Sync **********************************/
+/**
+ * System sync that chains: getNoteDetails -> setSummaryWithAI -> getSummary
+ * This simplifies the frontend by handling the entire flow on the backend
+ */
+
+export const GenerateSummaryRequest: Sync = ({
+  request,
+  user,
+  noteId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Summaries/generateSummary",
+    user,
+    noteId,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNoteDetails, { user, noteId }, {}]),
+});
+
+export const GenerateSummaryChainToAI: Sync = ({
+  request,
+  user,
+  noteId,
+  content,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
+      request,
+    }],
+    [Notes.getNoteDetails, {}, { content }],
+  ),
+  then: actions([Summaries.setSummaryWithAI, {
+    user,
+    text: content,
+    item: noteId,
+  }, {}]),
+});
+
+export const GenerateSummaryChainToGet: Sync = ({
+  request,
+  user,
+  noteId,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
+      request,
+    }],
+    [Summaries.setSummaryWithAI, {}, {}],
+  ),
+  then: actions([Summaries.getSummary, { user, item: noteId }, {}]),
+});
+
+export const GenerateSummaryResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+  summary,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user }, {
+      request,
+    }],
+    [Summaries.getSummary, {}, { summary }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, summary, accessToken }]),
+});
+
+export const GenerateSummaryResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Notes.getNoteDetails, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GenerateSummaryAIError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Summaries.setSummaryWithAI, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GenerateSummaryGetError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Summaries.getSummary, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+/***********************************************************************************/
 /********************************** User Requests **********************************/
 /************************** Usually for Authenticated Requests **********************/
+/***********************************************************************************/
 export const DeleteFolderRequest: Sync = ({
   request,
   user,
@@ -481,8 +727,10 @@ export const SetSummaryWithAIRequest: Sync = ({
   then: actions([Summaries.setSummaryWithAI, { user, text, item }]),
 });
 
-/********************************* Queries *********************************/
+/***********************************************************************************/
+/********************************* User Queries *********************************/
 /************************** Usually for Authenticated Requests **********************/
+/***********************************************************************************/
 export const GetSummaryRequest: Sync = ({
   request,
   user,
@@ -648,7 +896,11 @@ export const GetRootFolderIdRequest: Sync = ({
   },
   then: actions([Folder.getRootFolderId, { user }]),
 });
+
+/***********************************************************************************/
 /********************************* User Responses *********************************/
+/***********************************************************************************/
+/***********************************************************************************/
 
 export const DeleteFolderResponse: Sync = ({
   request,
@@ -963,7 +1215,11 @@ export const GetRootFolderIdResponse: Sync = (
   },
   then: actions([Requesting.respond, { request, rootFolder, accessToken }]),
 });
-/********************************* User Errors **********************************/
+
+/***********************************************************************************/
+/********************************* User Response Errors **********************************/
+/***********************************************************************************/
+/***********************************************************************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
   when: actions(
@@ -1109,249 +1365,10 @@ export const GetRootFolderIdResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
-/********************************* Generate Summary System Sync **********************************/
-/**
- * System sync that chains: getNoteDetails -> setSummaryWithAI -> getSummary
- * This simplifies the frontend by handling the entire flow on the backend
- */
-
-export const GenerateSummaryRequest: Sync = ({
-  request,
-  user,
-  noteId,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([Requesting.request, {
-    path: "/Summaries/generateSummary",
-    user,
-    noteId,
-    authToken,
-  }, { request }]),
-  where: async (frames) => {
-    return await authenticateRequest(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-  },
-  then: actions([Notes.getNoteDetails, { user, noteId }, {}]),
-});
-
-export const GenerateSummaryChainToAI: Sync = ({
-  request,
-  user,
-  noteId,
-  content,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
-      request,
-    }],
-    [Notes.getNoteDetails, {}, { content }],
-  ),
-  then: actions([Summaries.setSummaryWithAI, {
-    user,
-    text: content,
-    item: noteId,
-  }, {}]),
-});
-
-export const GenerateSummaryChainToGet: Sync = ({
-  request,
-  user,
-  noteId,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
-      request,
-    }],
-    [Summaries.setSummaryWithAI, {}, {}],
-  ),
-  then: actions([Summaries.getSummary, { user, item: noteId }, {}]),
-});
-
-export const GenerateSummaryResponse: Sync = ({
-  request,
-  user,
-  accessToken,
-  summary,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary", user }, {
-      request,
-    }],
-    [Summaries.getSummary, {}, { summary }],
-  ),
-  where: async (frames) => {
-    return await generateTokenForResponse(frames, user, accessToken);
-  },
-  then: actions([Requesting.respond, { request, summary, accessToken }]),
-});
-
-export const GenerateSummaryResponseError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
-    [Notes.getNoteDetails, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-export const GenerateSummaryAIError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
-    [Summaries.setSummaryWithAI, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-export const GenerateSummaryGetError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
-    [Summaries.getSummary, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-/********************************* Get User Notes System Sync **********************************/
-/**
- * System sync that chains: getNotesByUser -> getAllFolders -> getAllUserTags (if needed)
- * Then processes the data to map notes to folders and filter by folderId/tagLabel
- */
-
-export const GetUserNotesRequest: Sync = ({
-  request,
-  user,
-  authToken,
-  authenticatedUser,
-}) => ({
-  when: actions([Requesting.request, {
-    path: "/Notes/getUserNotes",
-    user,
-    authToken,
-  }, { request }]),
-  where: async (frames) => {
-    return await authenticateRequest(
-      frames,
-      authToken,
-      user,
-      authenticatedUser,
-    );
-  },
-  then: actions([Notes.getNotesByUser, { ownerId: user }, {}]),
-});
-
-export const GetUserNotesChainToFolders: Sync = ({
-  request,
-  user,
-  notes,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
-    [Notes.getNotesByUser, {}, { notes }],
-  ),
-  then: actions([Folder.getAllFolders, { user }, {}]),
-});
-
-export const GetUserNotesChainToTags: Sync = ({
-  request,
-  user,
-  notes,
-  folders,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
-    [Notes.getNotesByUser, {}, { notes }],
-    [Folder.getAllFolders, {}, { folders }],
-  ),
-  then: actions([Tags.getAllUserTags, { user }, {}]),
-});
-
-export const GetUserNotesResponse: Sync = ({
-  request,
-  user,
-  notes,
-  folders,
-  tags,
-  folderId,
-  tagLabel,
-  accessToken,
-}) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes", user }, { request }],
-    [Notes.getNotesByUser, {}, { notes }],
-    [Folder.getAllFolders, {}, { folders }],
-    [Tags.getAllUserTags, {}, { tags }],
-  ),
-  where: async (frames) => {
-    // Generate token
-    frames = await generateTokenForResponse(frames, user, accessToken);
-
-    // Process notes with folder mapping - frontend will handle filtering
-    const $ = frames[0];
-    if ($) {
-      const notesArray = $[notes];
-      const foldersArray = $[folders];
-
-      // Build note-to-folder mapping
-      const noteToFolderMap = new Map();
-      if (Array.isArray(foldersArray)) {
-        for (const folder of foldersArray) {
-          if (Array.isArray(folder.elements)) {
-            for (const noteId of folder.elements) {
-              noteToFolderMap.set(noteId, folder._id);
-            }
-          }
-        }
-      }
-
-      // Augment notes with folderId - return ALL notes, frontend handles filtering
-      const processedNotes = Array.isArray(notesArray)
-        ? notesArray.map((note) => ({
-          ...note,
-          folderId: noteToFolderMap.get(note._id) || null,
-        }))
-        : [];
-
-      // Replace notes symbol with processed notes
-      frames = frames.map(($) => {
-        const newFrame = { ...$, [notes]: processedNotes };
-        return newFrame;
-      });
-    }
-
-    return frames;
-  },
-  then: actions([Requesting.respond, { request, notes, accessToken }]),
-});
-
-export const GetUserNotesResponseError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
-    [Notes.getNotesByUser, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-export const GetUserNotesFoldersError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
-    [Folder.getAllFolders, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
-export const GetUserNotesTagsError: Sync = ({ request, error }) => ({
-  when: actions(
-    [Requesting.request, { path: "/Notes/getUserNotes" }, { request }],
-    [Tags.getAllUserTags, {}, { error }],
-  ),
-  then: actions([Requesting.respond, { request, error }]),
-});
-
+/***********************************************************************************/
 /*********************************Helper Functions **********************************/
-
+/***********************************************************************************/
+/***********************************************************************************/
 /**
  * Reusable authentication where clause for authenticated requests
  * Verifies token and ensures authenticated user matches requested user
