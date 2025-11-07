@@ -9,7 +9,7 @@ type User = ID;
 
 const JWT_SECRET = Deno.env.get("JWT_SECRET") ||
   "test";
-const ACCESS_TOKEN_EXPIRES_IN = "30s"; // 30 seconds for debugging
+const ACCESS_TOKEN_EXPIRES_IN = "2m"; // 30 seconds for debugging
 
 interface AuthUserDocument {
   _id: User;

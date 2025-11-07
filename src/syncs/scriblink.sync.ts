@@ -462,6 +462,7 @@ export const SetSummaryWithAIRequest: Sync = ({
     user,
     text,
     item,
+    authToken,
   }, { request }]),
   where: async (frames) => {
     return await authenticateRequest(
@@ -720,14 +721,15 @@ export const GetSummaryResponse: Sync = ({
   request,
   user,
   accessToken,
+  summary,
 }) => ({
   when: actions([Requesting.request, { path: "/Summaries/getSummary", user }, {
     request,
-  }], [Summaries.getSummary, {}, {}]),
+  }], [Summaries.getSummary, {}, { summary }]),
   where: async (frames) => {
     return await generateTokenForResponse(frames, user, accessToken);
   },
-  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+  then: actions([Requesting.respond, { request, summary, accessToken }]),
 });
 
 export const GetNoteDetailsResponse: Sync = ({
@@ -735,6 +737,7 @@ export const GetNoteDetailsResponse: Sync = ({
   user,
   noteId,
   accessToken,
+  content,
 }) => ({
   when: actions([Requesting.request, {
     path: "/Notes/getNoteDetails",
@@ -742,11 +745,11 @@ export const GetNoteDetailsResponse: Sync = ({
     noteId,
   }, {
     request,
-  }], [Notes.getNoteDetails, {}, {}]),
+  }], [Notes.getNoteDetails, {}, { content }]),
   where: async (frames) => {
     return await generateTokenForResponse(frames, user, accessToken);
   },
-  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+  then: actions([Requesting.respond, { request, content, accessToken }]),
 });
 /********************************* User Errors **********************************/
 
