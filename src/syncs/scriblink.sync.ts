@@ -473,6 +473,31 @@ export const SetSummaryWithAIRequest: Sync = ({
   },
   then: actions([Summaries.setSummaryWithAI, { user, text, item }]),
 });
+
+export const GetSummaryRequest: Sync = ({
+  request,
+  user,
+  item,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Summaries/getSummary",
+    user,
+    item,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Summaries.getSummary, { user, item }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -665,6 +690,21 @@ export const SetSummaryWithAIResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, success: true, accessToken }]),
 });
+
+export const GetSummaryResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+}) => ({
+  when: actions([Requesting.request, { path: "/Summaries/getSummary", user }, {
+    request,
+  }], [Summaries.getSummary, {}, {}]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, success: true, accessToken }]),
+});
+
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -743,6 +783,14 @@ export const AddTagToItemResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Tags/addTagToItem" }, { request }],
     [Tags.addTag, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetSummaryResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/getSummary" }, { request }],
+    [Summaries.getSummary, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
