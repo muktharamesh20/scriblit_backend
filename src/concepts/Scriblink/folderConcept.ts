@@ -448,11 +448,11 @@ export default class FolderConcept {
 
   async getAllFolders(
     { user }: { user: User },
-  ): Promise<FolderStructure[] | { error: string }> {
+  ): Promise<{ folders: FolderStructure[] } | { error: string }> {
     try {
       const allFolders = await this.folders.find({ owner: user })
         .toArray();
-      return allFolders;
+      return { folders: allFolders };
     } catch (e: any) {
       console.error(`Error getting all folders for user ${user}:`, e);
       return { error: `Failed to retrieve folders: ${e.message}` };

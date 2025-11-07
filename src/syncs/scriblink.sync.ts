@@ -524,6 +524,30 @@ export const GetNoteDetailsRequest: Sync = ({
   },
   then: actions([Notes.getNoteDetails, { user, noteId }]),
 });
+
+export const GetAllFoldersRequest: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Folder/getAllFolders",
+    user,
+    authToken,
+  }, {
+    request,
+  }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.getAllFolders, { user }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -751,6 +775,21 @@ export const GetNoteDetailsResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, content, accessToken }]),
 });
+
+export const GetAllFoldersResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+  folders,
+}) => ({
+  when: actions([Requesting.request, { path: "/Folder/getAllFolders", user }, {
+    request,
+  }], [Folder.getAllFolders, {}, { folders }]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, folders, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -857,6 +896,13 @@ export const SetSummaryWithAIResponseError: Sync = ({ request, error }) => ({
   then: actions([Requesting.respond, { request, error }]),
 });
 
+export const GetAllFoldersResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/getAllFolders" }, { request }],
+    [Folder.getAllFolders, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
 /*********************************Helper Functions **********************************/
 
 /**

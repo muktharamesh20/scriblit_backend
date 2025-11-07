@@ -33,7 +33,6 @@ export const inclusions: Record<string, string> = {
   "/api/Tags/_getAllUserTags": "allow anyone to get all the tags for a user",
   "/api/Folder/_getRootFolderId":
     "allow anyone to get root folder id because it gives no info to the requester",
-  "/api/Folder/getAllFolders": "allow anyone to get all the folders for a user",
 };
 
 /**
@@ -62,6 +61,7 @@ export const exclusions: Array<string> = [
   "/api/Summaries/setSummaryWithAI",
   "/api/Summaries/getSummary",
   "/api/Notes/getNoteDetails",
+  "/api/Folder/getAllFolders",
 
   // passthrough routes that are not public
   "/api/Notes/_getNoteDetails",
