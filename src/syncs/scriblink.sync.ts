@@ -89,6 +89,9 @@ export const DeleteSummaryOnNoteDeletion: Sync = ({ noteId, user }) => ({
   ]),
 });
 
+/**
+ * When a note is created, initialize it in the folder it's in and update its content
+ */
 export const InitializeNewlyCreatedNote: Sync = (
   {
     user,
@@ -107,6 +110,9 @@ export const InitializeNewlyCreatedNote: Sync = (
   ),
 });
 
+/*
+ * When a folder is deleted, delete all the notes it contains
+ */
 export const deleteChildNotes: Sync = ({
   user,
   folder,
@@ -475,6 +481,8 @@ export const SetSummaryWithAIRequest: Sync = ({
   then: actions([Summaries.setSummaryWithAI, { user, text, item }]),
 });
 
+/********************************* Queries *********************************/
+/************************** Usually for Authenticated Requests **********************/
 export const GetSummaryRequest: Sync = ({
   request,
   user,
