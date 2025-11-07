@@ -494,11 +494,11 @@ export default class FolderConcept {
    * @param user The user to get the root folder for.
    * @returns `Folder` ID if found or created, otherwise an error.
    */
-  async _getRootFolderId(
+  async getRootFolderId(
     { user }: { user: User },
   ): Promise<{ rootFolder: Folder } | { error: string }> {
     console.log(
-      "🔍 [FolderConcept._getRootFolderId] Getting root folder for user:",
+      "🔍 [FolderConcept.getRootFolderId] Getting root folder for user:",
       user,
     );
     // First, try to find existing folders for this user

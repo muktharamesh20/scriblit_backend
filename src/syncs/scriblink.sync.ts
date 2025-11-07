@@ -618,6 +618,28 @@ export const GetAllFoldersRequest: Sync = ({
   },
   then: actions([Folder.getAllFolders, { user }]),
 });
+
+export const GetRootFolderIdRequest: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Folder/getRootFolderId",
+    user,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Folder.getRootFolderId, { user }]),
+});
 /********************************* User Responses *********************************/
 
 export const DeleteFolderResponse: Sync = ({
@@ -918,6 +940,21 @@ export const GetAllFoldersResponse: Sync = ({
   },
   then: actions([Requesting.respond, { request, folders, accessToken }]),
 });
+
+export const GetRootFolderIdResponse: Sync = (
+  { request, user, rootFolder, accessToken },
+) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/getRootFolderId", user }, {
+      request,
+    }],
+    [Folder.getRootFolderId, {}, { rootFolder }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, rootFolder, accessToken }]),
+});
 /********************************* User Errors **********************************/
 
 export const CreateNoteResponseError: Sync = ({ request, error }) => ({
@@ -1052,6 +1089,14 @@ export const GetAllFoldersResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Folder/getAllFolders" }, { request }],
     [Folder.getAllFolders, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetRootFolderIdResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Folder/getRootFolderId" }, { request }],
+    [Folder.getRootFolderId, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
