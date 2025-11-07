@@ -60,9 +60,9 @@ export const RemoveTagsFromNoteOnDeletion: Sync = (
     for (const frame of frames) {
       const u = frame[user] as ID;
       const itemId = frame[noteId] as ID;
-      const tagRecords = await Tags._getTagsForItem({ user: u, item: itemId });
-      if (Array.isArray(tagRecords)) {
-        for (const rec of tagRecords) {
+      const response = await Tags.getTagsForItem({ user: u, item: itemId });
+      if ("tags" in response && Array.isArray(response.tags)) {
+        for (const rec of response.tags) {
           result.push({ ...frame, [tagId]: rec.tagId });
         }
       }
@@ -549,6 +549,30 @@ export const GetNotesByUserRequest: Sync = ({
   then: actions([Notes.getNotesByUser, { ownerId }]),
 });
 
+export const GetTagsForItemRequest: Sync = ({
+  request,
+  user,
+  item,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/getTagsForItem",
+    user,
+    item,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Tags.getTagsForItem, { user, item }]),
+});
+
 export const GetAllFoldersRequest: Sync = ({
   request,
   user,
@@ -820,6 +844,26 @@ export const GetNotesByUserResponse: Sync = ({
   then: actions([Requesting.respond, { request, notes, accessToken }]),
 });
 
+export const GetTagsForItemResponse: Sync = ({
+  request,
+  user,
+  item,
+  accessToken,
+  tags,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/getTagsForItem",
+    user,
+    item,
+  }, {
+    request,
+  }], [Tags.getTagsForItem, {}, { tags }]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, tags, accessToken }]),
+});
+
 export const GetAllFoldersResponse: Sync = ({
   request,
   user,
@@ -936,6 +980,14 @@ export const GetNotesByUserResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Notes/getNotesByUser" }, { request }],
     [Notes.getNotesByUser, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetTagsForItemResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Tags/getTagsForItem" }, { request }],
+    [Tags.getTagsForItem, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });

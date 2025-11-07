@@ -171,25 +171,6 @@ export default class TagConcept {
     }
   }
 
-  async updateTags(
-    { user, item, tags }: { user: User; item: Item; tags: string[] },
-  ): Promise<Empty | { error: string }> {
-    const currentTags = await this._getTagsForItem({ user, item: item });
-    if (!("error" in currentTags)) {
-      // Remove all current tags
-      for (const tag of currentTags) {
-        await this.removeTagFromItem({ tag: tag.tagId, item: item });
-      }
-    }
-
-    // Add new tags
-    for (const tagLabel of tags) {
-      await this.addTag({ user, label: tagLabel, item: item });
-    }
-
-    return {};
-  }
-
   // --- Query Methods (Following the pattern of the provided FolderConcept) ---
 
   /**
@@ -218,16 +199,18 @@ export default class TagConcept {
    * @returns An array of objects containing tag ID and label that match the criteria.
    *          Returns an object with an `error` string on database query failure.
    */
-  async _getTagsForItem(
+  async getTagsForItem(
     { user, item }: { user: User; item: Item },
-  ): Promise<{ tagId: Tag; label: string }[] | { error: string }> {
+  ): Promise<{ tags: { tagId: Tag; label: string }[] } | { error: string }> {
     try {
       // Find tags belonging to the user that also contain the specified item in their 'items' array.
-      const tags = await this.tags.find({ owner: user, items: item }).toArray();
-      return tags.map((tag) => ({
+      const tagRecords = await this.tags.find({ owner: user, items: item })
+        .toArray();
+      const tags = tagRecords.map((tag) => ({
         tagId: tag._id,
         label: tag.label,
       }));
+      return { tags };
     } catch (e: any) {
       console.error(`Error getting tags for item ${item} for user ${user}:`, e);
       return {
