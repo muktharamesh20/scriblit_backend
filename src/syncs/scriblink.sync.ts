@@ -525,6 +525,30 @@ export const GetNoteDetailsRequest: Sync = ({
   then: actions([Notes.getNoteDetails, { user, noteId }]),
 });
 
+export const GetNotesByUserRequest: Sync = ({
+  request,
+  user,
+  ownerId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getNotesByUser",
+    user,
+    ownerId,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNotesByUser, { ownerId }]),
+});
+
 export const GetAllFoldersRequest: Sync = ({
   request,
   user,
@@ -776,6 +800,26 @@ export const GetNoteDetailsResponse: Sync = ({
   then: actions([Requesting.respond, { request, content, accessToken }]),
 });
 
+export const GetNotesByUserResponse: Sync = ({
+  request,
+  user,
+  ownerId,
+  accessToken,
+  notes,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Notes/getNotesByUser",
+    user,
+    ownerId,
+  }, {
+    request,
+  }], [Notes.getNotesByUser, {}, { notes }]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, notes, accessToken }]),
+});
+
 export const GetAllFoldersResponse: Sync = ({
   request,
   user,
@@ -884,6 +928,14 @@ export const GetNoteDetailsResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Notes/getNoteDetails" }, { request }],
     [Notes.getNoteDetails, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetNotesByUserResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Notes/getNotesByUser" }, { request }],
+    [Notes.getNotesByUser, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });

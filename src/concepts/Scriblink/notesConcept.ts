@@ -259,10 +259,10 @@ export default class NotesConcept {
    */
   async getNotesByUser(
     { ownerId }: { ownerId: User },
-  ): Promise<NoteStructure[] | { error: string }> {
+  ): Promise<{ notes: NoteStructure[] } | { error: string }> {
     try {
       const notes = await this.notes.find({ owner: ownerId }).toArray();
-      return notes;
+      return { notes };
     } catch (e: any) {
       console.error(`Error getting notes for user ${ownerId}:`, e);
       return { error: `Failed to retrieve notes for user: ${e.message}` };
