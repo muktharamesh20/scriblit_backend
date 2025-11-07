@@ -573,6 +573,28 @@ export const GetTagsForItemRequest: Sync = ({
   then: actions([Tags.getTagsForItem, { user, item }]),
 });
 
+export const GetAllUserTagsRequest: Sync = ({
+  request,
+  user,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/getAllUserTags",
+    user,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Tags.getAllUserTags, { user }]),
+});
+
 export const GetAllFoldersRequest: Sync = ({
   request,
   user,
@@ -864,6 +886,24 @@ export const GetTagsForItemResponse: Sync = ({
   then: actions([Requesting.respond, { request, tags, accessToken }]),
 });
 
+export const GetAllUserTagsResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+  tags,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Tags/getAllUserTags",
+    user,
+  }, {
+    request,
+  }], [Tags.getAllUserTags, {}, { tags }]),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, tags, accessToken }]),
+});
+
 export const GetAllFoldersResponse: Sync = ({
   request,
   user,
@@ -988,6 +1028,14 @@ export const GetTagsForItemResponseError: Sync = ({ request, error }) => ({
   when: actions(
     [Requesting.request, { path: "/Tags/getTagsForItem" }, { request }],
     [Tags.getTagsForItem, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GetAllUserTagsResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Tags/getAllUserTags" }, { request }],
+    [Tags.getAllUserTags, {}, { error }],
   ),
   then: actions([Requesting.respond, { request, error }]),
 });

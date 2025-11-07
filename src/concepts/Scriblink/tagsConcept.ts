@@ -246,12 +246,12 @@ export default class TagConcept {
    * @returns An array of `TagStructure` objects owned by the user.
    *          Returns an object with an `error` string on database query failure.
    */
-  async _getAllUserTags(
+  async getAllUserTags(
     { user }: { user: User },
-  ): Promise<TagStructure[] | { error: string }> {
+  ): Promise<{ tags: TagStructure[] } | { error: string }> {
     try {
       const tags = await this.tags.find({ owner: user }).toArray();
-      return tags;
+      return { tags };
     } catch (e: any) {
       console.error(`Error getting all tags for user ${user}:`, e);
       return {
