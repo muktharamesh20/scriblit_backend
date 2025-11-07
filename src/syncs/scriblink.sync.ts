@@ -1108,6 +1108,112 @@ export const GetRootFolderIdResponseError: Sync = ({ request, error }) => ({
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
+
+/********************************* Generate Summary System Sync **********************************/
+/**
+ * System sync that chains: getNoteDetails -> setSummaryWithAI -> getSummary
+ * This simplifies the frontend by handling the entire flow on the backend
+ */
+
+export const GenerateSummaryRequest: Sync = ({
+  request,
+  user,
+  noteId,
+  authToken,
+  authenticatedUser,
+}) => ({
+  when: actions([Requesting.request, {
+    path: "/Summaries/generateSummary",
+    user,
+    noteId,
+    authToken,
+  }, { request }]),
+  where: async (frames) => {
+    return await authenticateRequest(
+      frames,
+      authToken,
+      user,
+      authenticatedUser,
+    );
+  },
+  then: actions([Notes.getNoteDetails, { user, noteId }, {}]),
+});
+
+export const GenerateSummaryChainToAI: Sync = ({
+  request,
+  user,
+  noteId,
+  content,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
+      request,
+    }],
+    [Notes.getNoteDetails, {}, { content }],
+  ),
+  then: actions([Summaries.setSummaryWithAI, {
+    user,
+    text: content,
+    item: noteId,
+  }, {}]),
+});
+
+export const GenerateSummaryChainToGet: Sync = ({
+  request,
+  user,
+  noteId,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user, noteId }, {
+      request,
+    }],
+    [Summaries.setSummaryWithAI, {}, {}],
+  ),
+  then: actions([Summaries.getSummary, { user, item: noteId }, {}]),
+});
+
+export const GenerateSummaryResponse: Sync = ({
+  request,
+  user,
+  accessToken,
+  summary,
+}) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary", user }, {
+      request,
+    }],
+    [Summaries.getSummary, {}, { summary }],
+  ),
+  where: async (frames) => {
+    return await generateTokenForResponse(frames, user, accessToken);
+  },
+  then: actions([Requesting.respond, { request, summary, accessToken }]),
+});
+
+export const GenerateSummaryResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Notes.getNoteDetails, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GenerateSummaryAIError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Summaries.setSummaryWithAI, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
+export const GenerateSummaryGetError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/generateSummary" }, { request }],
+    [Summaries.getSummary, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 /*********************************Helper Functions **********************************/
 
 /**

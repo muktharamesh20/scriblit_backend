@@ -55,6 +55,7 @@ export const exclusions: Array<string> = [
   "/api/Summaries/setSummary",
   "/api/Summaries/setSummaryWithAI",
   "/api/Summaries/getSummary",
+  "/api/Summaries/generateSummary", // System sync that chains getNoteDetails + setSummaryWithAI + getSummary
   "/api/Notes/getNoteDetails",
   "/api/Notes/getNotesByUser", // Use Requesting syncs for authentication
   "/api/Tags/getTagsForItem", // Use Requesting syncs for authentication
