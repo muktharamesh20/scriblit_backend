@@ -848,6 +848,15 @@ export const GetNoteDetailsResponseError: Sync = ({ request, error }) => ({
   ),
   then: actions([Requesting.respond, { request, error }]),
 });
+
+export const SetSummaryWithAIResponseError: Sync = ({ request, error }) => ({
+  when: actions(
+    [Requesting.request, { path: "/Summaries/setSummaryWithAI" }, { request }],
+    [Summaries.setSummaryWithAI, {}, { error }],
+  ),
+  then: actions([Requesting.respond, { request, error }]),
+});
+
 /*********************************Helper Functions **********************************/
 
 /**
