@@ -41,6 +41,7 @@ export const inclusions: Record<string, string> = {
  */
 
 export const exclusions: Array<string> = [
+  // Actions that use auth
   "/api/Notes/createNote",
   "/api/Folder/createFolder",
   "/api/Folder/moveFolder",
@@ -54,10 +55,12 @@ export const exclusions: Array<string> = [
   "/api/Tags/addTag",
   "/api/Summaries/setSummary",
   "/api/Summaries/setSummaryWithAI",
-  "/api/Summaries/getSummary",
   "/api/Summaries/generateSummary", // System sync that chains getNoteDetails + setSummaryWithAI + getSummary
+
+  // Queries that use auth
   "/api/Notes/getUserNotes", // System sync that gets notes with folder mapping and filtering
   "/api/Notes/getNoteDetails",
+  "/api/Summaries/getSummary",
   "/api/Notes/getNotesByUser", // Use Requesting syncs for authentication
   "/api/Tags/getTagsForItem", // Use Requesting syncs for authentication
   "/api/Tags/getAllUserTags", // Use Requesting syncs for authentication

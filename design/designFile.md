@@ -44,3 +44,11 @@ I had a method in tags concept which just returned the label names that the user
 
 ## Adding the Requests file:
 This is new code that basically lets me do syncs.  I was having trouble making the code automatically do actions like create root folders and such only from the frontend, so this was a way to combine actions. In the final assignment, when we truley do syncs, I'll get rid of this, or modify it.
+
+# Other Interesting Moments
+- adding spinner to indicate generation
+- adding auth tokens... balancing between making them not usable forever but also stay active as long as you're active
+- changing generateSummaries and getUserNotes to be backend syncs
+- making tagsoverview go faster
+- added a search bar
+- 
