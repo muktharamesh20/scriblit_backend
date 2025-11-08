@@ -10,5 +10,5 @@ Scriblink is a modern note-taking web app designed to help students **organize, 
 **Note:**  
 - [Design Document](design/finalDesignDocument.md)  
 - [Reflection Document](design/reflection.md)  
-- [Demo Video](https://your-demo-video-link-here)  
+- [Demo Video](userJourneyFinal.mp4)  
 - [Trace of Incoming Actions](design/logs.md)  
